@@ -31,6 +31,9 @@ struct PR_F {
   PR_F(double* _p_curr, double* _p_next, vertex* _V) : 
     p_curr(_p_curr), p_next(_p_next), V(_V) {}
   inline bool update(uintE s, uintE d){ //update function applies PageRank equation
+#ifdef DEBUG1
+    cout << "update s: " << s << " d: " << d << endl;
+#endif
     p_next[d] += p_curr[s]/V[s].getOutDegree();
     return 1;
   }
@@ -50,6 +53,9 @@ struct PR_Vertex_F {
     p_curr(_p_curr), p_next(_p_next), 
     damping(_damping), addedConstant((1-_damping)*(1/(double)n)){}
   inline bool operator () (uintE i) {
+ #ifdef DEBUG1
+    cout << "PR_VERTEX_F  i: " << i << endl;
+#endif
     p_next[i] = damping*p_next[i] + addedConstant;
     return 1;
   }
@@ -66,37 +72,68 @@ struct PR_Vertex_Reset {
   }
 };
 
+#define DEBUG2
+
 template <class vertex>
 void Compute(graph<vertex>& GA, commandLine P) {
-  long maxIters = P.getOptionLongValue("-maxiters",100);
+  long maxIters = P.getOptionLongValue("-maxiters",20);
   const intE n = GA.n;
   const double damping = 0.85, epsilon = 0.0000001;
-  
+  printf("graph number of vertices: %d number of edges: %d", n, GA.m);
+
   double one_over_n = 1/(double)n;
   double* p_curr = newA(double,n);
-  {parallel_for(long i=0;i<n;i++) p_curr[i] = one_over_n;}
+  {parallel_for(long i=0;i<n;i++) p_curr[i] = one_over_n;}//use 1 instead of 1/n
   double* p_next = newA(double,n);
   {parallel_for(long i=0;i<n;i++) p_next[i] = 0;} //0 if unchanged
   bool* frontier = newA(bool,n);
   {parallel_for(long i=0;i<n;i++) frontier[i] = 1;}
-
-  vertexSubset Frontier(n,n,frontier);
+  bool* vertexFrontier = newA(bool,n);
+  {parallel_for(long i=0;i<n;i++) vertexFrontier[i] = 1;}
   
+  vertexSubset Frontier(n,n,frontier);
+  vertexSubset VertexFrontier(n,n,vertexFrontier);
+  double rankSum;
+
   long iter = 0;
   while(iter++ < maxIters){
+    #ifdef DEBUG1  
+    for(int i = 0; i < n; i++) {
+      printf("iter %d curr: %f next: %f frontier: %d \n ", iter, p_curr[i], p_next[i], frontier[i]);    
+    }
+    #endif
     vertexSubset output = edgeMap(GA, Frontier, PR_F<vertex>(p_curr,p_next,GA.V),GA.m/20);
+#ifdef DEBUG1     
+    for(int i = 0; i < n; i++) {
+      printf("iter %d curr: %f next: %f frontier: %d \n ", iter, p_curr[i], p_next[i], frontier[i]);    
+    }
+#endif
     vertexMap(Frontier,PR_Vertex_F(p_curr,p_next,damping,n));
     //compute L1-norm between p_curr and p_next
+ #ifdef DEBUG2
+    rankSum = sequence::plusReduce(p_curr,n);   
+    //cout << "rank sum: " << rankSum << endl;
+ #endif
     {parallel_for(long i=0;i<n;i++) {
       p_curr[i] = fabs(p_curr[i]-p_next[i]);
       }}
     double L1_norm = sequence::plusReduce(p_curr,n);
+    
     if(L1_norm < epsilon) break;
     //reset p_curr
     vertexMap(Frontier,PR_Vertex_Reset(p_curr));
     swap(p_curr,p_next);
+#ifdef HACK
+    //Frontier.del(); 
+    //Frontier = output;
+    output.del();
+#else
     Frontier.del(); 
     Frontier = output;
+#endif
+
   }
+
+  printf("PageRank took %d iterations, max iter: %d, rank sum: %f\n", iter, maxIters, rankSum);
   Frontier.del(); free(p_curr); free(p_next); 
 }

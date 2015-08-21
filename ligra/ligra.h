@@ -38,6 +38,8 @@
 #include "gettime.h"
 using namespace std;
 
+//#define DEBUG1
+
 //*****START FRAMEWORK*****
 
 //*****VERTEX OBJECT*****
@@ -153,6 +155,9 @@ void remDuplicates(uintE* indices, uintE* flags, long m, long n) {
 //*****EDGE FUNCTIONS*****
 template <class F, class vertex>
   bool* edgeMapDense(graph<vertex> GA, bool* vertexSubset, F f, bool parallel = 0) {
+#ifdef DEBUG1
+  cout << "inside EdgeMapDense" << endl;
+#endif
   long numVertices = GA.n;
   vertex *G = GA.V;
   bool* next = newA(bool,numVertices);
@@ -163,6 +168,10 @@ template <class F, class vertex>
       if(!parallel || d < 1000) {
 	for(uintE j=0; j<d; j++){
 	  uintE ngh = G[i].getInNeighbor(j);
+#ifdef DEBUG1
+	  cout << "node: " << i <<  " ngh: " << ngh << endl;
+#endif
+
 #ifndef WEIGHTED
 	  if (vertexSubset[ngh] && f.update(ngh,i))
 #else
@@ -184,11 +193,22 @@ template <class F, class vertex>
       }
     }
     }}
+
+#ifdef DEBUG1
+  cout << "next " << endl;
+  for (int i = 0; i < numVertices; i++) {
+    cout << next[i] << " " ;
+  }
+  cout << endl;
+#endif
   return next;
 }
 
 template <class F, class vertex>
 bool* edgeMapDenseForward(graph<vertex> GA, bool* vertexSubset, F f) {
+#ifdef DEBUG1
+  cout << "inside EdgeMapDenseForward" << endl;
+#endif
   long numVertices = GA.n;
   vertex *G = GA.V;
   bool* next = newA(bool,numVertices);
@@ -227,6 +247,9 @@ template <class F, class vertex>
 pair<long,uintE*> edgeMapSparse(vertex* frontierVertices, uintE* indices, 
 				uintT* degrees, uintT m, F f, 
 				long remDups=0, uintE* flags=NULL) {
+#ifdef DEBUG1
+  cout << "inside EdgeMapSparse" << endl;
+#endif
   uintT* offsets = degrees;
   long outEdgeCount = sequence::plusScan(offsets, degrees, m);
   uintE* outEdges = newA(uintE,outEdgeCount);
