@@ -53,7 +53,7 @@ int parallel_main(int argc, char* argv[]) {
   }
 
   parallel_for (intT i=0;i<m;i++) {
-    Weights[i] = Choices[hash((uintT)i) % (2*maxEdgeLen)];
+    Weights[i] = Choices[ligra_hash((uintT)i) % (2*maxEdgeLen)];
     //if(i%1000==0 && Weights[i] < 0) Weights[i]*=-1;
   }
   free(Choices);

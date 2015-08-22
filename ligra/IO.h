@@ -1,3 +1,4 @@
+
 // This code is part of the project "Ligra: A Lightweight Graph Processing
 // Framework for Shared Memory", presented at Principles and Practice of 
 // Parallel Programming, 2013.
@@ -27,6 +28,11 @@
 #include <stdlib.h>
 #include "parallel.h"
 #include "quickSort.h"
+#include <algorithm>
+
+
+//#define DEBUG
+#define SORT
 using namespace std;
 
 typedef pair<uintE,uintE> intPair;
@@ -221,7 +227,124 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
       }}    
 
     free(tOffsets);
+
+   
+#ifdef SORT
+#ifndef WEIGHTED
+    cout << "sorting the edges based on in degrees" << endl;
+   
+    int * sortedVertexIdMap = new int[n];
+    int * reverseIdMap = new int[n];
+
+    parallel_for(int i = 0; i < n; i++) sortedVertexIdMap[i] = i;
+    std::sort(sortedVertexIdMap, sortedVertexIdMap + n, [&v](const int & a, const int & b) -> bool
+      {
+        return v[a].getInDegree() < v[b].getInDegree();
+      });
+
+    for (int i = 0; i < n; i++) {
+      reverseIdMap[sortedVertexIdMap[i]] = i; 
+    }
+
+
+#ifdef DEBUG
+    cout << "n: " << n << " m: " << m << endl;
+    for (int i = 0; i < n; i++){
+      int cur = sortedVertexIdMap[i];
+      cout << "node: " << cur << " degree: " << v[cur].getInDegree()  <<  endl;
+    }
+    
+    cout << "pull graph" << endl;
+    for (int i = 0; i < n; i ++) {
+      int cur = sortedVertexIdMap[i];
+      for (int j = 0; j < v[cur].getInDegree(); j++){
+	cout << "node: " << cur << " inNgh: " << v[cur].getInNeighbor(j) << endl;
+      }
+    }
+
+    cout << "push graph" << endl;
+    for (int i = 0; i < n; i ++) {
+      int cur = sortedVertexIdMap[i];
+      for (int j = 0; j < v[cur].getOutDegree(); j++){
+	cout << "node: " << cur << " inNgh: " << v[cur].getOutNeighbor(j) << endl;
+      }
+    }
+#endif
+
+    cout << "node 0 is mapped to: " << reverseIdMap[0] << endl;
+
+    uintE * sortedOutEdges = newA(uintE, m);
+    uintE * sortedInEdges = newA(uintE, m);
+    vertex* sortedV = newA(vertex,n);
+    
+    int startIdx = 0;
+    int k = 0;
+    for (int i = 0; i < n; i++){
+      int vertexIdx = sortedVertexIdMap[i];
+      sortedV[i].setInNeighbors(sortedInEdges + startIdx);
+      int inDegree = v[vertexIdx].getInDegree();
+      sortedV[i].setInDegree(inDegree);
+      for (int j = 0; j <inDegree ; j++){
+	sortedInEdges[k] = reverseIdMap[v[vertexIdx].getInNeighbor(j)];
+	k = k + 1;
+	startIdx = startIdx + 1;
+      }
+    }
+
+
+    startIdx = 0;
+    k = 0;
+    for (int i = 0; i < n; i++){
+      int vertexIdx = sortedVertexIdMap[i];
+      sortedV[i].setOutNeighbors(sortedOutEdges + startIdx);
+      int outDegree = v[vertexIdx].getOutDegree();
+      sortedV[i].setOutDegree(outDegree);
+      for (int j = 0; j <outDegree ; j++){
+	sortedOutEdges[k] = reverseIdMap[v[vertexIdx].getOutNeighbor(j)];
+	k = k + 1;
+	startIdx = startIdx + 1;
+      }
+    }
+
+#ifdef DEBUG
+    cout <<"vertex in degrees: "  << endl; 
+    for (int i = 0; i < n; i++){ 
+      cout << sortedV[i].getInDegree() << " "; 
+    } 
+    cout << endl; 
+
+    cout <<"sortedInEdgeArray: " << endl;
+    for (int i= 0; i < m; i++) {
+      cout << sortedInEdges[i] << endl;
+    }
+
+    cout <<"vertex out degrees: "  << endl; 
+    for (int i = 0; i < n; i++){ 
+      cout << sortedV[i].getOutDegree() << " "; 
+    } 
+    cout << endl; 
+
+    cout <<"sortedOutEdgeArray: " << endl;
+    for (int i= 0; i < m; i++) {
+      cout << sortedOutEdges[i] << endl;
+    }
+
+#endif
+
+    free(sortedVertexIdMap);
+    free(reverseIdMap);
+    free(v);
+    free(edges);
+    free(inEdges);
+    
+    return graph<vertex>(sortedV,n,m,sortedOutEdges,sortedInEdges);
+    //return graph<vertex>(v,n,m,edges,inEdges);
+#endif //end of weighted
+#else //end of SORT
+
     return graph<vertex>(v,n,m,edges,inEdges);
+#endif
+
   }
   else {
     free(offsets);

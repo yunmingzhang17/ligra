@@ -23,6 +23,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "ligra.h"
 #include "math.h"
+#define HACK
 
 template <class vertex>
 struct PR_F {

@@ -303,6 +303,11 @@ vertexSubset edgeMap(graph<vertex> GA, vertexSubset &V, F f, intT threshold = -1
     cout << "edgeMap: Sizes Don't match" << endl;
     abort();
   }
+
+  #ifdef DEBUG1
+  cout << "Inside edgeMap" << endl;
+  #endif
+
   // used to generate nonzero indices to get degrees
   uintT* degrees = newA(uintT, m);
   vertex* frontierVertices;

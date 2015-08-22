@@ -37,5 +37,6 @@ int parallel_main(int argc, char* argv[]) {
   char* oFile = P.getArgument(0);
   bool sym = P.getOption("-s");
   edgeArray<intT> G = readSNAP<intT>(iFile);
-  writeGraphToFile<intT>(graphFromEdges(G,sym),oFile);
+  //writeGraphToFile<intT>(graphFromEdges(G,sym),oFile);
+  writeGraphToFile<intT>(graphSortedByInDegreeFromEdges(G,sym),oFile);
 }

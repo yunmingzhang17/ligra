@@ -1,3 +1,5 @@
+MKLROOT=1
+
 ifdef LONG
 INTT = -DLONG
 endif
@@ -14,7 +16,7 @@ PLFLAGS = -fcilkplus -lcilkrts
 
 else ifdef MKLROOT
 PCC = icpc
-PCFLAGS = -O3 -DCILKP $(INTT) $(INTE)
+PCFLAGS = -O3 -DCILKP -std=c++0x $(INTT) $(INTE)
 
 else ifdef OPENMP
 PCC = g++

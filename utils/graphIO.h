@@ -25,10 +25,13 @@
 #include <iostream>
 #include <stdint.h>
 #include <cstring>
+#include <algorithm>
 #include "parallel.h"
 #include "blockRadixSort.h"
 #include "quickSort.h"
 using namespace std;
+
+#define DEBUG
 
 // **************************************************************
 //    EDGE ARRAY REPRESENTATION
@@ -229,6 +232,53 @@ graph<intT> graphFromEdges(edgeArray<intT> EA, bool makeSym) {
   }
   A.del();
   free(offsets);
+  return graph<intT>(v,n,m,X);
+}
+
+
+
+template <class intT>
+graph<intT> graphSortedByInDegreeFromEdges(edgeArray<intT> EA, bool makeSym) {
+  edgeArray<intT> A;
+  if (makeSym) A = makeSymmetric<intT>(EA);
+  else {  // should have copy constructor
+    edge<intT> *E = newA(edge<intT>,EA.nonZeros);
+    parallel_for (intT i=0; i < EA.nonZeros; i++) E[i] = EA.E[i];
+    A = edgeArray<intT>(E,EA.numRows,EA.numCols,EA.nonZeros);
+  }
+  intT m = A.nonZeros;
+  intT n = max<intT>(A.numCols,A.numRows);
+  intT* offsets = newA(intT,n*2);
+  intSort::iSort(A.E,offsets,m,n,getuF<intT>());
+  intT *X = newA(intT,m);
+  vertex<intT> *v = newA(vertex<intT>,n);
+  parallel_for (intT i=0; i < n; i++) {
+    intT o = offsets[i];
+    intT l = ((i == n-1) ? m : offsets[i+1])-offsets[i];
+    v[i].degree = l;
+    v[i].Neighbors = X+o;
+    for (intT j=0; j < l; j++) {
+      v[i].Neighbors[j] = A.E[o+j].v;
+    }
+  }
+  A.del();
+  free(offsets);
+
+  int * sortedVertexIdMap = new int[n];
+  //int * degreeArray = new int[n];
+  parallel_for(int i = 0; i < n; i++) sortedVertexIdMap[i] = i;
+  std::sort(sortedVertexIdMap, sortedVertexIdMap + n, [&v](const int & a, const int & b) -> bool
+	    {
+	      return v[a].degree < v[b].degree;
+	      }); 
+
+  #ifdef DEBUG
+  for (int i = 0; i < n; i++){
+    int cur = sortedVertexIdMap[i];
+    cout << "node: " << cur  << " degree: " << v[cur].degree << endl;  
+  }
+  #endif
+
   return graph<intT>(v,n,m,X);
 }
 

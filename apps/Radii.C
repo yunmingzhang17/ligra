@@ -81,7 +81,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
   uintE* starts = newA(uintE,sampleSize);
   
   {parallel_for(ulong i=0;i<sampleSize;i++) { //initial set of vertices
-      uintE v = hash(i) % n;
+      uintE v = ligra_hash(i) % n;
     radii[v] = 0;
     starts[i] = v;
     NextVisited[v] = (long) 1<<i;
