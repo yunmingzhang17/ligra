@@ -38,9 +38,6 @@
 #include "gettime.h"
 using namespace std;
 
-//#define DEBUG1
-#define PROFILE
-
 //*****START FRAMEWORK*****
 
 //*****VERTEX OBJECT*****

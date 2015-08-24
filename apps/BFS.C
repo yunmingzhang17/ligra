@@ -25,10 +25,17 @@
 //#define DEBUG
 //#define DEBUG1
 
+#ifdef DEBUG
+int updateCount = 0;
+#endif
+
 struct BFS_F {
   uintE* Parents;
   BFS_F(uintE* _Parents) : Parents(_Parents) {}
   inline bool update (uintE s, uintE d) { //Update
+    #ifdef DEBUG
+    updateCount++;
+    #endif
     if(Parents[d] == UINT_E_MAX) { Parents[d] = s; return 1; }
     else return 0;
   }
@@ -55,6 +62,10 @@ void Compute(graph<vertex>& GA, commandLine P) {
   cout << "start out degree: " << GA.V[start].getOutDegree() << endl;
   #endif
 
+  #ifdef DEBUG
+  updateCount = 0;
+  #endif
+
   while(!Frontier.isEmpty()){ //loop until frontier is empty
     #ifdef DEBUG
     cout << "iter: " << iter << endl;
@@ -64,7 +75,12 @@ void Compute(graph<vertex>& GA, commandLine P) {
     vertexSubset output = edgeMap(GA, Frontier, BFS_F(Parents),GA.m/20);    
     Frontier.del();
     Frontier = output; //set new frontier
-  } 
+  }
+
+  #ifdef DEBUG
+  cout << "non atomic update count: " << updateCount << endl;
+  #endif
+ 
   Frontier.del();
   free(Parents); 
 }
