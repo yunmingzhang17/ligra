@@ -27,6 +27,27 @@ PCC = g++
 PCFLAGS = -O2 $(INTT) $(INTE)
 endif
 
+ifeq (${SORT},1)
+        PCFLAGS+=-DSORT
+endif
+
+ifeq (${DEBUG2},1)
+        PCFLAGS+=-DDEBUG2
+endif
+
+ifeq (${DEBUG},1)
+        PCFLAGS+=-DDEBUG
+endif
+
+ifeq (${DEBUG1},1)
+        PCFLAGS+=-DDEBUG1
+endif
+
+ifeq (${RECURSIVE},1)
+        PCFLAGS+=-DRECURSIVE
+endif
+
+
 COMMON= ligra.h graph.h utils.h IO.h parallel.h gettime.h quickSort.h parseCommandLine.h
 
 ALL= BFS BC Components Radii PageRank PageRankDelta BellmanFord BFSCC BFS-Bitvector

@@ -80,7 +80,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
   long maxIters = P.getOptionLongValue("-maxiters",20);
   const intE n = GA.n;
   const double damping = 0.85, epsilon = 0.0000001;
-  printf("graph number of vertices: %d number of edges: %d", n, GA.m);
+  printf("graph number of vertices: %d number of edges: %d \n", n, GA.m);
 
   double one_over_n = 1/(double)n;
   double* p_curr = newA(double,n);

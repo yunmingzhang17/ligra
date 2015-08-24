@@ -27,6 +27,7 @@ symmetricVertex(intE* n, uintT d)
   uintE getOutNeighbor(uintT j) { return neighbors[j]; }
   void setInNeighbors(uintE* _i) { neighbors = _i; }
   void setOutNeighbors(uintE* _i) { neighbors = _i; }
+  uintE* getInNeighbors() { return neighbors; }
 #else
   //weights are stored in the entry after the neighbor ID
   //so size of neighbor list is twice the degree
@@ -36,7 +37,9 @@ symmetricVertex(intE* n, uintT d)
   intE getOutWeight(intT j) { return neighbors[2*j+1]; }
   void setInNeighbors(intE* _i) { neighbors = _i; }
   void setOutNeighbors(intE* _i) { neighbors = _i; }
+  intE* getInNeighbors() { return neighbors; }
 #endif
+
   uintT getInDegree() { return degree; }
   uintT getOutDegree() { return degree; }
   void setInDegree(uintT _d) { degree = _d; }
@@ -59,11 +62,13 @@ asymmetricVertex(uintE* iN, uintE* oN, uintT id, uintT od)
 asymmetricVertex(intE* iN, intE* oN, uintT id, uintT od) 
 #endif
 : inNeighbors(iN), outNeighbors(oN), inDegree(id), outDegree(od) {}
+  
 #ifndef WEIGHTED
   uintE getInNeighbor(uintT j) { return inNeighbors[j]; }
   uintE getOutNeighbor(uintT j) { return outNeighbors[j]; }
   void setInNeighbors(uintE* _i) { inNeighbors = _i; }
   void setOutNeighbors(uintE* _i) { outNeighbors = _i; }
+  uintE* getInNeighbors() { return inNeighbors; }
 #else 
   intE getInNeighbor(uintT j) { return inNeighbors[2*j]; }
   intE getOutNeighbor(uintT j) { return outNeighbors[2*j]; }
@@ -71,6 +76,7 @@ asymmetricVertex(intE* iN, intE* oN, uintT id, uintT od)
   intE getOutWeight(uintT j) { return outNeighbors[2*j+1]; }
   void setInNeighbors(intE* _i) { inNeighbors = _i; }
   void setOutNeighbors(intE* _i) { outNeighbors = _i; }
+  intE* getInNeighbors() { return inNeighbors; }
 #endif
   uintT getInDegree() { return inDegree; }
   uintT getOutDegree() { return outDegree; }

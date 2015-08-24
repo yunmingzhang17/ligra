@@ -22,7 +22,8 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "ligra.h"
-#define DEBUG
+//#define DEBUG
+//#define DEBUG1
 
 struct BFS_F {
   uintE* Parents;
@@ -47,9 +48,8 @@ void Compute(graph<vertex>& GA, commandLine P) {
   parallel_for(long i=0;i<n;i++) Parents[i] = UINT_E_MAX;
   Parents[start] = start;
   vertexSubset Frontier(n,start); //creates initial frontier
-
-  #ifdef DEBUG
   int iter = 0;
+  #ifdef DEBUG2
   cout << "start: " << start << endl;
   cout << "start in degree: " << GA.V[start].getInDegree() << endl;
   cout << "start out degree: " << GA.V[start].getOutDegree() << endl;
@@ -60,7 +60,6 @@ void Compute(graph<vertex>& GA, commandLine P) {
     cout << "iter: " << iter << endl;
     cout << "numActive: " << Frontier.numNonzeros() << endl;
     iter++;
-
     #endif
     vertexSubset output = edgeMap(GA, Frontier, BFS_F(Parents),GA.m/20);    
     Frontier.del();

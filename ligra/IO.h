@@ -32,7 +32,7 @@
 
 
 //#define DEBUG
-#define SORT
+//#define SORT
 using namespace std;
 
 typedef pair<uintE,uintE> intPair;
@@ -247,7 +247,7 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
     }
 
 
-#ifdef DEBUG
+#ifdef DEBUG1
     cout << "n: " << n << " m: " << m << endl;
     for (int i = 0; i < n; i++){
       int cur = sortedVertexIdMap[i];
@@ -306,7 +306,7 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
       }
     }
 
-#ifdef DEBUG
+#ifdef DEBUG1
     cout <<"vertex in degrees: "  << endl; 
     for (int i = 0; i < n; i++){ 
       cout << sortedV[i].getInDegree() << " "; 

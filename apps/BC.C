@@ -94,7 +94,6 @@ template <class vertex>
 void Compute(graph<vertex>& GA, commandLine P) {
   long start = P.getOptionLongValue("-r",0);
   long n = GA.n, threshold = GA.m/20;
-
   fType* NumPaths = newA(fType,n);
   {parallel_for(long i=0;i<n;i++) NumPaths[i] = 0.0;}
   NumPaths[start] = 1.0;
@@ -108,7 +107,18 @@ void Compute(graph<vertex>& GA, commandLine P) {
   Levels.push_back(Frontier);
 
   long round = 0;
+
+  #ifdef DEBUG2
+  cout << "start: " << start << endl;
+  cout << "start in degree: " << GA.V[start].getInDegree() << endl;
+  cout << "start out degree: " << GA.V[start].getOutDegree() << endl;
+  #endif
+
   while(!Frontier.isEmpty()){ //first phase
+#ifdef DEBUG
+    cout << "iter: " << round << endl;
+    cout << "numActive: " << Frontier.numNonzeros() << endl;
+#endif
     round++;
     vertexSubset output = edgeMap(GA, Frontier, BC_F(NumPaths,Visited),threshold);
     vertexMap(output, BC_Vertex_F(Visited)); //mark visited
@@ -145,8 +155,15 @@ void Compute(graph<vertex>& GA, commandLine P) {
 
   //Update dependencies scores
   parallel_for(long i=0;i<n;i++) {
+    cout << Dependencies[i] << endl;
     Dependencies[i]=(Dependencies[i]-inverseNumPaths[i])/inverseNumPaths[i];
   }
+
+#ifdef DEBUG
+    cout << Dependencies[0] << endl;
+    cout << Dependencies[4194303] << endl;
+#endif
+
   free(inverseNumPaths);
   free(Visited);
   free(Dependencies);

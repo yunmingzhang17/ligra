@@ -39,6 +39,7 @@
 using namespace std;
 
 //#define DEBUG1
+#define PROFILE
 
 //*****START FRAMEWORK*****
 
@@ -94,7 +95,8 @@ vertexSubset(long _n, long _m, bool* bits)
     if (s == NULL) {
       _seq<uintE> R = sequence::packIndex<uintE>(d,n);
       if (m != R.n) {
-	cout << "bad stored value of m" << endl; 
+	cout << "bad stored value of m" << endl;
+	cout << "m: " << m <<  endl;
 	abort();
       }
       s = R.A;
@@ -153,6 +155,78 @@ void remDuplicates(uintE* indices, uintE* flags, long m, long n) {
 }
 
 //*****EDGE FUNCTIONS*****
+template <class F, class vertex>
+  bool* recursiveEdgeMapDense(graph<vertex> GA, bool* vertexSubset, F f, bool parallel = 0) {
+  cout << "recursive " << endl;
+#ifdef DEBUG1
+  cout << "inside recrusiveEdgeMapDense" << endl;
+#endif
+  long numVertices = GA.n;
+  vertex *G = GA.V;
+  bool* next = newA(bool,numVertices);
+  cilk_spawn recursiveEdgeMapDenseHelper(GA, 0, numVertices-1, vertexSubset, f, next);
+
+
+  //process the last node
+  for(int j = 0; j < GA.V[numVertices-1].getInDegree(); j++){
+    next[numVertices-1] = 0;
+    uintE ngh = GA.V[numVertices-1].getInNeighbor(j);
+#ifdef DEBUG1
+    cout << "node: " << (numVertices-1) << " ngh: " << ngh << endl;
+#endif
+#ifndef WEIGHTED
+    if (vertexSubset[ngh] && f.update(ngh,(numVertices-1)))
+#else
+    if (vertexSubset[ngh] && f.update(ngh,(numVertices-1),GA.V[(numVertices-1)].getInWeight(j)))
+#endif
+      next[(numVertices-1)] = 1;
+    if(!f.cond((numVertices-1))) break;
+  }
+
+  cilk_sync;
+  return next;
+}
+
+template <class F, class vertex>
+  void recursiveEdgeMapDenseHelper(graph<vertex> GA, int start, int end, bool* vertexSubset, F f, bool *next, int edgeGrainSize = 4096){
+  //int edgeEnd = reinterpret_cast<int>(GA.V[end].getInNeighbors());
+  //int edgeStart = reinterpret_cast<int>(GA.V[start].getInNeighbors());
+  //cout << GA.V[end].getInNeighbors() << endl;
+  //cout << GA.V[start].getInNeighbors() << endl;
+#ifdef DEBUG1
+  cout << "start: " << start << " end: " << end << endl;
+#endif
+
+  long diff = reinterpret_cast<long>((GA.V[end].getInNeighbors() - GA.V[start].getInNeighbors()));
+#ifdef DEBUG1
+  cout << "diff: " << diff << endl;
+#endif
+  if ((start == end -1) || (diff < edgeGrainSize)){
+    for (int i = start; i < end; i++){
+      next[i] = 0;
+      for(int j = 0; j < GA.V[i].getInDegree(); j++){
+	uintE ngh = GA.V[i].getInNeighbor(j);
+#ifdef DEBUG1
+	cout << "node: " << i << " ngh: " << ngh << endl;
+#endif
+
+#ifndef WEIGHTED
+	if (vertexSubset[ngh] && f.update(ngh,i))
+#else
+	if (vertexSubset[ngh] && f.update(ngh,i,GA.V[i].getInWeight(j)))
+#endif
+	  next[i] = 1;
+	if(!f.cond(i)) break;
+      }
+    }
+  } else {
+	cilk_spawn recursiveEdgeMapDenseHelper(GA, start, start + ((end-start)>>1), vertexSubset, f, next, edgeGrainSize);
+	recursiveEdgeMapDenseHelper(GA, start + ((end-start)>>1), end, vertexSubset, f, next, edgeGrainSize);
+  }
+}
+
+
+
 template <class F, class vertex>
   bool* edgeMapDense(graph<vertex> GA, bool* vertexSubset, F f, bool parallel = 0) {
 #ifdef DEBUG1
@@ -325,9 +399,16 @@ vertexSubset edgeMap(graph<vertex> GA, vertexSubset &V, F f, intT threshold = -1
     V.toDense();
     free(degrees);
     free(frontierVertices);
-    bool* R = (option == DENSE_FORWARD) ? 
-      edgeMapDenseForward(GA,V.d,f) : 
-      edgeMapDense(GA, V.d, f, option);
+    bool* R;
+    if (option == DENSE_FORWARD) { 
+	R = edgeMapDenseForward(GA,V.d,f); 
+	} else { 
+#ifndef RECURSIVE
+	R = edgeMapDense(GA, V.d, f, option);
+#else
+	R = recursiveEdgeMapDense(GA, V.d, f, option);
+#endif
+      }
     vertexSubset v1 = vertexSubset(numVertices, R);
     //cout << "size (D) = " << v1.m << endl;
     return  v1;
@@ -400,6 +481,13 @@ int parallel_main(int argc, char* argv[]) {
       readGraph<asymmetricVertex>(iFile,symmetric,binary); //asymmetric graph
     Compute(G,P);
     if(G.transposed) G.transpose();
+#ifdef PROFILE
+    ofstream outputFile;
+    outputFile.open("./.ready");
+    outputFile.close();
+    cout << "continue?" << "\n";
+    int c = getchar();
+#endif
     for(int r=0;r<rounds;r++) {
       startTime();
       Compute(G,P);
