@@ -231,17 +231,26 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
    
 #ifdef SORT
 #ifndef WEIGHTED
-    cout << "sorting the edges based on in degrees" << endl;
+    
    
     int * sortedVertexIdMap = new int[n];
     int * reverseIdMap = new int[n];
-
+    
     parallel_for(int i = 0; i < n; i++) sortedVertexIdMap[i] = i;
+    
+    #ifdef COARSE
+    cout << "coarse stable sort the edges based on in degrees" << endl;
+    std::stable_sort(sortedVertexIdMap, sortedVertexIdMap + n, [&v](const int & a, const int & b) -> bool
+      {
+        return v[a].getInDegree()/50 < v[b].getInDegree()/50;
+      });
+    #else
+    cout << "non-stable sorting the edges based on in degrees" << endl;
     std::sort(sortedVertexIdMap, sortedVertexIdMap + n, [&v](const int & a, const int & b) -> bool
       {
         return v[a].getInDegree() < v[b].getInDegree();
       });
-
+    #endif
     for (int i = 0; i < n; i++) {
       reverseIdMap[sortedVertexIdMap[i]] = i; 
     }
@@ -272,6 +281,7 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
 #endif
 
     cout << "node 0 is mapped to: " << reverseIdMap[0] << endl;
+    cout << "node 13 is mapped to: " << reverseIdMap[13] << endl;
 
     uintE * sortedOutEdges = newA(uintE, m);
     uintE * sortedInEdges = newA(uintE, m);

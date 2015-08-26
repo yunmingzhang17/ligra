@@ -26,6 +26,12 @@
 
 typedef double fType;
 
+int singlethreadedUpdateCountBC_F = 0;
+int singlethreadedUpdateCountBC_BACK_F = 0;
+
+int singlethreadedAtomicUpdateCountBC_F = 0;
+int singlethreadedAtomicUpdateCountBC_BACK_F = 0;
+
 struct BC_F {
   fType* NumPaths;
   bool* Visited;
@@ -33,12 +39,20 @@ struct BC_F {
   BC_F(fType* _NumPaths, bool* _Visited) : 
     NumPaths(_NumPaths), Visited(_Visited) {}
   inline bool update(uintE s, uintE d){ //Update function for forward phase
+#ifdef DEBUG
+    singlethreadedUpdateCountBC_F++;
+#endif
+
     fType oldV = NumPaths[d];
     NumPaths[d] += NumPaths[s];
     return oldV == 0.0;
   }
   inline bool updateAtomic (uintE s, uintE d) { //atomic Update, basically an add
     volatile fType oldV, newV; 
+#ifdef DEBUG
+    singlethreadedAtomicUpdateCountBC_F++;
+#endif
+
     do { 
       oldV = NumPaths[d]; newV = oldV + NumPaths[s];
     } while(!CAS(&NumPaths[d],oldV,newV));
@@ -53,11 +67,17 @@ struct BC_Back_F {
   BC_Back_F(fType* _Dependencies, bool* _Visited) : 
     Dependencies(_Dependencies), Visited(_Visited) {}
   inline bool update(uintE s, uintE d){ //Update function for backwards phase
+#ifdef DEBUG
+    singlethreadedUpdateCountBC_BACK_F++;
+#endif
     fType oldV = Dependencies[d];
     Dependencies[d] += Dependencies[s];
     return oldV == 0.0;
   }
   inline bool updateAtomic (uintE s, uintE d) { //atomic Update
+#ifdef DEBUG
+    singlethreadedAtomicUpdateCountBC_BACK_F++;
+#endif
     volatile fType oldV, newV;
     do {
       oldV = Dependencies[d];
@@ -97,6 +117,13 @@ void Compute(graph<vertex>& GA, commandLine P) {
   fType* NumPaths = newA(fType,n);
   {parallel_for(long i=0;i<n;i++) NumPaths[i] = 0.0;}
   NumPaths[start] = 1.0;
+
+#ifdef DEBUG
+    singlethreadedUpdateCountBC_F = 0;
+    singlethreadedUpdateCountBC_BACK_F = 0;
+    singlethreadedAtomicUpdateCountBC_F = 0;
+    singlethreadedAtomicUpdateCountBC_BACK_F = 0;
+#endif
 
   bool* Visited = newA(bool,n);
   {parallel_for(long i=0;i<n;i++) Visited[i] = 0;}
@@ -155,13 +182,16 @@ void Compute(graph<vertex>& GA, commandLine P) {
 
   //Update dependencies scores
   parallel_for(long i=0;i<n;i++) {
-    cout << Dependencies[i] << endl;
     Dependencies[i]=(Dependencies[i]-inverseNumPaths[i])/inverseNumPaths[i];
   }
 
 #ifdef DEBUG
     cout << Dependencies[0] << endl;
     cout << Dependencies[4194303] << endl;
+    cout << " single threaded BC_F non atomic update count: " << singlethreadedUpdateCountBC_F << endl;
+    cout << " single threaded BC_BACK_F non atomic update count: " << singlethreadedUpdateCountBC_BACK_F << endl;
+    cout << " single threaded BC_F atomic update count: " << singlethreadedAtomicUpdateCountBC_F << endl;
+    cout << " single threaded BC_BACK_F atomic update count: " << singlethreadedAtomicUpdateCountBC_BACK_F << endl;
 #endif
 
   free(inverseNumPaths);

@@ -27,6 +27,7 @@
 
 #ifdef DEBUG
 int updateCount = 0;
+int atomicUpdateCount = 0;
 #endif
 
 struct BFS_F {
@@ -40,6 +41,9 @@ struct BFS_F {
     else return 0;
   }
   inline bool updateAtomic (uintE s, uintE d){ //atomic version of Update
+    #ifdef DEBUG
+    atomicUpdateCount++;
+    #endif
     return (CAS(&Parents[d],UINT_E_MAX,s));
   }
   //cond function checks if vertex has been visited yet
@@ -64,6 +68,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
 
   #ifdef DEBUG
   updateCount = 0;
+  atomicUpdateCount = 0;
   #endif
 
   while(!Frontier.isEmpty()){ //loop until frontier is empty
@@ -78,7 +83,8 @@ void Compute(graph<vertex>& GA, commandLine P) {
   }
 
   #ifdef DEBUG
-  cout << "non atomic update count: " << updateCount << endl;
+  cout << "non atomic update count (single threaded test): " << updateCount << endl;
+  cout << "atomic update count (single threaded test): " << atomicUpdateCount << endl;
   #endif
  
   Frontier.del();

@@ -38,6 +38,8 @@
 #include "gettime.h"
 using namespace std;
 
+
+
 //*****START FRAMEWORK*****
 
 //*****VERTEX OBJECT*****
@@ -154,8 +156,7 @@ void remDuplicates(uintE* indices, uintE* flags, long m, long n) {
 //*****EDGE FUNCTIONS*****
 template <class F, class vertex>
   bool* recursiveEdgeMapDense(graph<vertex> GA, bool* vertexSubset, F f, bool parallel = 0) {
-  cout << "recursive " << endl;
-#ifdef DEBUG1
+#ifdef DEBUG
   cout << "inside recrusiveEdgeMapDense" << endl;
 #endif
   long numVertices = GA.n;
@@ -165,21 +166,22 @@ template <class F, class vertex>
 
 
   //process the last node
-  for(int j = 0; j < GA.V[numVertices-1].getInDegree(); j++){
-    next[numVertices-1] = 0;
-    uintE ngh = GA.V[numVertices-1].getInNeighbor(j);
+  next[numVertices-1] = 0;
+  if (f.cond(numVertices-1)){
+    for(int j = 0; j < GA.V[numVertices-1].getInDegree(); j++){
+      uintE ngh = GA.V[numVertices-1].getInNeighbor(j);
 #ifdef DEBUG1
-    cout << "node: " << (numVertices-1) << " ngh: " << ngh << endl;
+      cout << "node: " << (numVertices-1) << " ngh: " << ngh << endl;
 #endif
 #ifndef WEIGHTED
-    if (vertexSubset[ngh] && f.update(ngh,(numVertices-1)))
+      if (vertexSubset[ngh] && f.update(ngh,(numVertices-1)))
 #else
-    if (vertexSubset[ngh] && f.update(ngh,(numVertices-1),GA.V[(numVertices-1)].getInWeight(j)))
+	if (vertexSubset[ngh] && f.update(ngh,(numVertices-1),GA.V[(numVertices-1)].getInWeight(j)))
 #endif
       next[(numVertices-1)] = 1;
-    if(!f.cond((numVertices-1))) break;
+      if(!f.cond((numVertices-1))) break;
+    }
   }
-
   cilk_sync;
   return next;
 }
@@ -201,19 +203,21 @@ template <class F, class vertex>
   if ((start == end -1) || (diff < edgeGrainSize)){
     for (int i = start; i < end; i++){
       next[i] = 0;
-      for(int j = 0; j < GA.V[i].getInDegree(); j++){
-	uintE ngh = GA.V[i].getInNeighbor(j);
+      if (f.cond(i)){
+	for(int j = 0; j < GA.V[i].getInDegree(); j++){
+	  uintE ngh = GA.V[i].getInNeighbor(j);
 #ifdef DEBUG1
-	cout << "node: " << i << " ngh: " << ngh << endl;
+	  cout << "node: " << i << " ngh: " << ngh << endl;
 #endif
-
+	  
 #ifndef WEIGHTED
-	if (vertexSubset[ngh] && f.update(ngh,i))
+	  if (vertexSubset[ngh] && f.update(ngh,i))
 #else
-	if (vertexSubset[ngh] && f.update(ngh,i,GA.V[i].getInWeight(j)))
+	    if (vertexSubset[ngh] && f.update(ngh,i,GA.V[i].getInWeight(j)))
 #endif
-	  next[i] = 1;
-	if(!f.cond(i)) break;
+	      next[i] = 1;
+	  if(!f.cond(i)) break;
+	}
       }
     }
   } else {
@@ -226,9 +230,13 @@ template <class F, class vertex>
 
 template <class F, class vertex>
   bool* edgeMapDense(graph<vertex> GA, bool* vertexSubset, F f, bool parallel = 0) {
-#ifdef DEBUG1
+#ifdef DEBUG
   cout << "inside EdgeMapDense" << endl;
+  int vertexSubsetCalls = 0;
+  int vertexSubsetSuc = 0;
+  int vertexUpdateSuc = 0;
 #endif
+
   long numVertices = GA.n;
   vertex *G = GA.V;
   bool* next = newA(bool,numVertices);
@@ -243,14 +251,32 @@ template <class F, class vertex>
 	  cout << "node: " << i <<  " ngh: " << ngh << endl;
 #endif
 
+#ifdef DEBUG
+      vertexSubsetCalls++;
+#endif
+
 #ifndef WEIGHTED
-	  if (vertexSubset[ngh] && f.update(ngh,i))
+      if (vertexSubset[ngh]){
+
+#ifdef DEBUG
+	  vertexSubsetSuc++;
+#endif
+	  if(f.update(ngh,i)) {
+
+#ifdef DEBUG
+	  vertexUpdateSuc++;
+#endif
+
 #else
-	  if (vertexSubset[ngh] && f.update(ngh,i,G[i].getInWeight(j)))
+	  if (vertexSubset[ngh] & f.update(ngh,i,G[i].getInWeight(j))){
 #endif
 	    next[i] = 1;
-	  if(!f.cond(i)) break;
-	}
+	    if(!f.cond(i)) break;
+#ifndef WEIGHTED
+	  }
+#endif
+	  }
+	  }//end if parallel 
       } else {
 	{parallel_for(uintE j=0; j<d; j++){
 	  uintE ngh = G[i].getInNeighbor(j);
@@ -264,6 +290,15 @@ template <class F, class vertex>
       }
     }
     }}
+
+#ifdef DEBUG
+cout << "calls to vertexSubset: " << vertexSubsetCalls << endl;
+cout << "calls to subset sucess: " << vertexSubsetSuc << endl;
+cout << "calls to update: " << vertexUpdateSuc << endl;
+
+ cout << "calls to subset sucess ratio: " << vertexSubsetSuc/(double)vertexSubsetCalls << endl;
+ cout << "calls to update: " << vertexUpdateSuc/(double)vertexSubsetSuc << endl;
+#endif
 
 #ifdef DEBUG1
   cout << "next " << endl;
@@ -318,7 +353,7 @@ template <class F, class vertex>
 pair<long,uintE*> edgeMapSparse(vertex* frontierVertices, uintE* indices, 
 				uintT* degrees, uintT m, F f, 
 				long remDups=0, uintE* flags=NULL) {
-#ifdef DEBUG1
+#ifdef DEBUG
   cout << "inside EdgeMapSparse" << endl;
 #endif
   uintT* offsets = degrees;
