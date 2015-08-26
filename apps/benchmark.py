@@ -4,6 +4,9 @@ NUMA="numactl -i all "
 path=" ../inputs/"
 graph="twitter"
 app = "BFS"
+rounds = 10
+
+sharedFlags = NUMA+ "./" + app + " -rounds  " + str(rounds) + " -r "
 
 for recur in range(2):
     for sort in range(2):
@@ -13,14 +16,14 @@ for recur in range(2):
             cmd = makeflag + "make clean " + app
             print cmd
             os.system(cmd)
-            os.system(NUMA+ "./" + app +  " -r " + str(start) + path +graph)
+            os.system(sharedFlags + str(start) + path +graph)
 
             makeflag ="RECURSIVE="+str(recur)+" SORT="+str(sort)+" COARSE=0 "
             start = 60622225
             cmd = makeflag + "make clean " + app
             print cmd
             os.system(cmd)
-            os.system(NUMA+ "./" + app +  " -r " + str(start) + path +graph)
+            os.system(sharedFlags + str(start) + path +graph)
 
         else:
             makeflag ="RECURSIVE="+str(recur)+" SORT="+str(sort)+ " " 
@@ -29,4 +32,4 @@ for recur in range(2):
             cmd = makeflag + "make clean " + app
             print cmd
             os.system(cmd)
-            os.system(NUMA+ "./" + app +  " -r " + str(start) + path +graph)
+            os.system(sharedFlags + str(start) + path +graph)
