@@ -1,4 +1,3 @@
-
 // This code is part of the project "Ligra: A Lightweight Graph Processing
 // Framework for Shared Memory", presented at Principles and Practice of 
 // Parallel Programming, 2013.
@@ -242,7 +241,7 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
     cout << "coarse stable sort the edges based on in degrees" << endl;
     std::stable_sort(sortedVertexIdMap, sortedVertexIdMap + n, [&v](const int & a, const int & b) -> bool
       {
-        return v[a].getInDegree()/50 < v[b].getInDegree()/50;
+        return v[a].getInDegree() < v[b].getInDegree();
       });
     #else
     cout << "non-stable sorting the edges based on in degrees" << endl;
