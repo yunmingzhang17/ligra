@@ -174,9 +174,11 @@ template <class F, class vertex>
       cout << "node: " << (numVertices-1) << " ngh: " << ngh << endl;
 #endif
 #ifndef WEIGHTED
-      if (vertexSubset[ngh] && f.update(ngh,(numVertices-1)))
+      //if (vertexSubset[ngh] && f.update(ngh,(numVertices-1)))
+      if (f.update(ngh,(numVertices-1)))
 #else
-	if (vertexSubset[ngh] && f.update(ngh,(numVertices-1),GA.V[(numVertices-1)].getInWeight(j)))
+      //if (vertexSubset[ngh] && f.update(ngh,(numVertices-1),GA.V[(numVertices-1)].getInWeight(j)))
+      if (f.update(ngh,(numVertices-1),GA.V[(numVertices-1)].getInWeight(j)))
 #endif
       next[(numVertices-1)] = 1;
       if(!f.cond((numVertices-1))) break;
@@ -211,9 +213,11 @@ template <class F, class vertex>
 #endif
 	  
 #ifndef WEIGHTED
-	  if (vertexSubset[ngh] && f.update(ngh,i))
+	  //if (vertexSubset[ngh] && f.update(ngh,i))
+	  if (f.update(ngh,i))
 #else
-	    if (vertexSubset[ngh] && f.update(ngh,i,GA.V[i].getInWeight(j)))
+	    // if (vertexSubset[ngh] && f.update(ngh,i,GA.V[i].getInWeight(j)))
+	  if (f.update(ngh,i,GA.V[i].getInWeight(j)))
 #endif
 	      next[i] = 1;
 	  if(!f.cond(i)) break;
