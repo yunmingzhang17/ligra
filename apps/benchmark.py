@@ -1,11 +1,14 @@
 import os
 
-NUMA="numactl -i all "
+
+NUMA_Mult="numactl -i all "
+NUMA_Sing="numactl --physcpu=0 --localalloc "
 path=" ../inputs/"
 graph="twitter"
 app = "BFS"
 rounds = 10
 
+NUMA= NUMA_Sing
 sharedFlags = NUMA+ "./" + app + " -rounds  " + str(rounds) + " -r "
 
 for recur in range(2):
