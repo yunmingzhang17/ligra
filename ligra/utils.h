@@ -55,6 +55,38 @@ struct maxF { E operator() (const E& a, const E& b) const {return (a>b) ? a : b;
 #define _SCAN_LOG_BSIZE 10
 #define _SCAN_BSIZE (1 << _SCAN_LOG_BSIZE)
 
+__forceinline int Check_Bit(unsigned int *Vis, long long int delta)
+{
+  // Function returns 0 if the bit was not set... 1 otherwise...
+
+  long long int word = ((delta) >> 5);
+  int bit = ( (delta) & 0x1F); // bit will be [0..31]
+  // [profile] loading Vis[word] takes 31.1% of memory stall time.
+  // stall per load = 73.4 ns.
+  unsigned int value = Vis[word];
+  //printf("addr = %#lx\n", &(Vis[word]));
+  if ((value & (1 << bit)) != 0) return 1;
+  return 0;
+}
+
+__forceinline int Set_Bit_Only(unsigned int *Vis, long long int delta)
+{
+  // Function returns 0 if the bit was not set... 1 otherwise and  also sets the bit :)
+
+  long long int word = (delta >> 5);
+  int bit = ( delta & 0x1F); // bit will be [0..31]
+  // [profile] loading Vis[word] takes 2.3% stall time
+  // stall per load = 115.9 ns.
+  unsigned int value = Vis[word];
+
+  if ((value & (1 << bit)) != 0) return 1;
+  // [profile] storing Vis[word] takes 2.55% stall time
+  // stall per store = 128.5 ns.
+  Vis[word] =  (value | (1<<bit));
+  return 0;
+}
+
+
 template <class T>
 struct _seq {
   T* A;
@@ -63,6 +95,9 @@ struct _seq {
 _seq(T* _A, long _n) : A(_A), n(_n) {}
   void del() {free(A);}
 };
+
+
+
 
 namespace sequence {
   template <class intT>

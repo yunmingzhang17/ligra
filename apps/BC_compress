@@ -181,18 +181,20 @@ void Compute(graph<vertex>& GA, commandLine P) {
     Levels.push_back(output); //save frontier onto Levels
     Frontier = output;
 
+
+    {parallel_for (long i=0; i < n; i++){
+	  //cout << "Frontier.s[i] " << Frontier.s[i] << endl;
+	    NumPaths[i].active = false;
+	}
+      }
+
     if (!Frontier.isDense){
 #ifdef DEBUG
       cout << "sparse frontier: " << endl;
 #endif
       long m = Frontier.numNonzeros();
       cout << "m: " << m << endl;
-            {parallel_for (long i=0; i < n; i++){
-	  //cout << "Frontier.s[i] " << Frontier.s[i] << endl;
-	    NumPaths[i].active = false;
-	}
-      }
-
+            
       {parallel_for (long i=0; i < m; i++){
 	  //cout << "Frontier.s[i] " << Frontier.s[i] << endl;
 	  NumPaths[Frontier.s[i]].active = true;
@@ -243,17 +245,19 @@ void Compute(graph<vertex>& GA, commandLine P) {
     //vertex map to mark visited and update Dependencies scores
     vertexMap(Frontier,BC_Back_Vertex_F(Visited,Dependencies,inverseNumPaths));
 
+
+     {parallel_for (long i=0; i < n; i++){
+	  //cout << "Frontier.s[i] " << Frontier.s[i] << endl;
+	    NumPaths[i].active = false;
+	}
+      }
+
     if (!Frontier.isDense){
 #ifdef DEBUG
       cout << "sparse frontier: " << endl;
 #endif
       long m = Frontier.numNonzeros();
       cout << "m: " << m << endl;
-      {parallel_for (long i=0; i < n; i++){
-	  //cout << "Frontier.s[i] " << Frontier.s[i] << endl;
-	    NumPaths[i].active = false;
-	}
-      }
 
       {parallel_for (long i=0; i < m; i++){
 	  //cout << "Frontier.s[i] " << Frontier.s[i] << endl;

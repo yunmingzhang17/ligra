@@ -36,7 +36,6 @@
 #include "IO.h"
 #include "parseCommandLine.h"
 #include "gettime.h"
-#include <vector>
 using namespace std;
 
 
@@ -154,40 +153,6 @@ void remDuplicates(uintE* indices, uintE* flags, long m, long n) {
   }
 }
 
-
-__forceinline int Check_Bit(unsigned int *Vis, long long int delta)
-{
-  // Function returns 0 if the bit was not set... 1 otherwise...
-
-  long long int word = ((delta) >> 5);
-  int bit = ( (delta) & 0x1F); // bit will be [0..31]
-  // [profile] loading Vis[word] takes 31.1% of memory stall time.
-  // stall per load = 73.4 ns.
-  unsigned int value = Vis[word];
-  //printf("addr = %#lx\n", &(Vis[word]));
-  if ((value & (1 << bit)) != 0) return 1;
-  return 0;
-}
-
-__forceinline int Set_Bit_Only(unsigned int *Vis, long long int delta)
-{
-  // Function returns 0 if the bit was not set... 1 otherwise and  also sets the bit :)
-
-  long long int word = (delta >> 5);
-  int bit = ( delta & 0x1F); // bit will be [0..31]
-  // [profile] loading Vis[word] takes 2.3% stall time
-  // stall per load = 115.9 ns.
-  unsigned int value = Vis[word];
-
-  if ((value & (1 << bit)) != 0) return 1;
-  // [profile] storing Vis[word] takes 2.55% stall time
-  // stall per store = 128.5 ns.
-  Vis[word] =  (value | (1<<bit));
-  return 0;
-}
-
-
-
 //*****EDGE FUNCTIONS*****
 template <class F, class vertex>
   bool* recursiveEdgeMapDense(graph<vertex> GA, bool* vertexSubset, F f, bool parallel = 0) {
@@ -197,33 +162,8 @@ template <class F, class vertex>
   long numVertices = GA.n;
   vertex *G = GA.V;
   bool* next = newA(bool,numVertices);
+  cilk_spawn recursiveEdgeMapDenseHelper(GA, 0, numVertices-1, vertexSubset, f, next);
 
-  //startTime();
-
-
-  int bit_vector_length = numVertices / 32;
-  if(numVertices % 32 != 0)
-    bit_vector_length++;
-  unsigned int* vertexSubsetBit = (unsigned int*) _mm_malloc(sizeof(unsigned int) * bit_vector_length, 64);
-  
-  // reset all bits of the bit vector
-  for(int i = 0; i < bit_vector_length; i++) 
-    vertexSubsetBit[i] = 0;
-
-  parallel_for(int i = 0; i < numVertices; i+=32){
-    int start = i;
-    int end = (((i + 32) < numVertices)? (i+32):numVertices);
-    for(int j = start; j < end; j++){
-      if (vertexSubset[j])
-	Set_Bit_Only(vertexSubsetBit, j);
-    }
-  }
-
-  //nextTime("Bit Vector intialization time");
-
-  
-  cilk_spawn recursiveEdgeMapDenseHelper(GA, 0, numVertices-1, vertexSubsetBit, f, next);
-  
 
   //process the last node
   next[numVertices-1] = 0;
@@ -234,21 +174,22 @@ template <class F, class vertex>
       cout << "node: " << (numVertices-1) << " ngh: " << ngh << endl;
 #endif
 #ifndef WEIGHTED
-      if (Check_Bit(vertexSubsetBit, ngh) && f.update(ngh,(numVertices-1)))
+      //if (vertexSubset[ngh] && f.update(ngh,(numVertices-1)))
+      if (f.update(ngh,(numVertices-1)))
 #else
-	if (Check_Bit(vertexSubsetBit, ngh) && f.update(ngh,(numVertices-1),GA.V[(numVertices-1)].getInWeight(j)))
+	//if (vertexSubset[ngh] && f.update(ngh,(numVertices-1),GA.V[(numVertices-1)].getInWeight(j)))
+      if (f.update(ngh,(numVertices-1),GA.V[(numVertices-1)].getInWeight(j)))
 #endif
       next[(numVertices-1)] = 1;
       if(!f.cond((numVertices-1))) break;
     }
   }
   cilk_sync;
-  _mm_free(vertexSubsetBit);
   return next;
 }
 
 template <class F, class vertex>
-  void recursiveEdgeMapDenseHelper(graph<vertex> GA, int start, int end, unsigned int * vertexSubsetBit, F f, bool *next, int edgeGrainSize = 4096){
+  void recursiveEdgeMapDenseHelper(graph<vertex> GA, int start, int end, bool* vertexSubset, F f, bool *next, int edgeGrainSize = 4096){
   //int edgeEnd = reinterpret_cast<int>(GA.V[end].getInNeighbors());
   //int edgeStart = reinterpret_cast<int>(GA.V[start].getInNeighbors());
   //cout << GA.V[end].getInNeighbors() << endl;
@@ -272,11 +213,11 @@ template <class F, class vertex>
 #endif
 	  
 #ifndef WEIGHTED
-	  // if (vertexSubset[ngh] && f.update(ngh,i))
-	  if (Check_Bit(vertexSubsetBit, ngh) && f.update(ngh, i))
+	  //if (vertexSubset[ngh] && f.update(ngh,i))
+	  if (f.update(ngh,i))
 #else
 	    //if (vertexSubset[ngh] && f.update(ngh,i,GA.V[i].getInWeight(j)))
-	    if (Check_Bit(vertexSubsetBit, ngh) && f.update(ngh,i,GA.V[i].getInWeight(j)))
+	    if (f.update(ngh,i,GA.V[i].getInWeight(j)))
 #endif
 	      next[i] = 1;
 	  if(!f.cond(i)) break;
@@ -284,8 +225,8 @@ template <class F, class vertex>
       }
     }
   } else {
-	cilk_spawn recursiveEdgeMapDenseHelper(GA, start, start + ((end-start)>>1), vertexSubsetBit, f, next, edgeGrainSize);
-	recursiveEdgeMapDenseHelper(GA, start + ((end-start)>>1), end, vertexSubsetBit, f, next, edgeGrainSize);
+	cilk_spawn recursiveEdgeMapDenseHelper(GA, start, start + ((end-start)>>1), vertexSubset, f, next, edgeGrainSize);
+	recursiveEdgeMapDenseHelper(GA, start + ((end-start)>>1), end, vertexSubset, f, next, edgeGrainSize);
   }
 }
 
