@@ -35,27 +35,19 @@ int singlethreadedAtomicUpdateCountBC_BACK_F = 0;
 struct BC_F {
   fType* NumPaths;
   bool* Visited;
-  unsigned int* ActiveBitVector;
 
-  BC_F(fType* _NumPaths, bool* _Visited, unsigned int* _ActiveBitVector) : 
-    NumPaths(_NumPaths), Visited(_Visited), ActiveBitVector(_ActiveBitVector) {}
-  __forceinline bool update(uintE s, uintE d){ //Update function for forward phase
-    bool result;
-
-    if(!Check_Bit(ActiveBitVector, s)){
-      result = false;
-    } else {
+  BC_F(fType* _NumPaths, bool* _Visited) : 
+    NumPaths(_NumPaths), Visited(_Visited) {}
+  inline bool update(uintE s, uintE d){ //Update function for forward phase
 #ifdef DEBUG
     singlethreadedUpdateCountBC_F++;
 #endif
-    
+
     fType oldV = NumPaths[d];
     NumPaths[d] += NumPaths[s];
-    result =( oldV == 0.0);
-    }
-    return result;
+    return oldV == 0.0;
   }
-  __forceinline bool updateAtomic (uintE s, uintE d) { //atomic Update, basically an add
+  inline bool updateAtomic (uintE s, uintE d) { //atomic Update, basically an add
     volatile fType oldV, newV; 
 #ifdef DEBUG
     singlethreadedAtomicUpdateCountBC_F++;
@@ -72,28 +64,17 @@ struct BC_F {
 struct BC_Back_F {
   fType* Dependencies;
   bool* Visited;
-  unsigned int* ActiveBitVector;
-
-  BC_Back_F(fType* _Dependencies, bool* _Visited, unsigned int* _ActiveBitVector) : 
-    Dependencies(_Dependencies), Visited(_Visited), ActiveBitVector(_ActiveBitVector) {}
-  __forceinline bool update(uintE s, uintE d){ //Update function for backwards phase
-
-    bool result;
-    
-    if(!Check_Bit(ActiveBitVector, s)){
-      result =  false;
-    } else {
+  BC_Back_F(fType* _Dependencies, bool* _Visited) : 
+    Dependencies(_Dependencies), Visited(_Visited) {}
+  inline bool update(uintE s, uintE d){ //Update function for backwards phase
 #ifdef DEBUG
-      singlethreadedUpdateCountBC_BACK_F++;
+    singlethreadedUpdateCountBC_BACK_F++;
 #endif
-      fType oldV = Dependencies[d];
-      Dependencies[d] += Dependencies[s];
-      result = ( oldV == 0.0);
-    }
-    return result;
+    fType oldV = Dependencies[d];
+    Dependencies[d] += Dependencies[s];
+    return oldV == 0.0;
   }
-  
-  __forceinline bool updateAtomic (uintE s, uintE d) { //atomic Update
+  inline bool updateAtomic (uintE s, uintE d) { //atomic Update
 #ifdef DEBUG
     singlethreadedAtomicUpdateCountBC_BACK_F++;
 #endif
@@ -129,39 +110,6 @@ struct BC_Back_Vertex_F {
     Dependencies[i] += inverseNumPaths[i];
     return 1; }};
 
-void SetBitVectorWithFrontier(unsigned int* bit_vector, int bit_vector_length, vertexSubset Frontier, int numVertices){
-  // reset all bits of the bit vector
-  parallel_for(int i = 0; i < bit_vector_length; i++)
-    bit_vector[i] = 0;
-  
-  if (Frontier.isDense) {
-    long m = Frontier.numNonzeros();
-#ifdef DEBUG
-    cout << "dense frontier: " << endl;
-    cout << "m: " << m << endl;
-#endif
-    bool * active = Frontier.d;
-    parallel_for(int i = 0; i < numVertices; i+=32){
-      int start = i;
-      int end = (((i + 32) < numVertices)? (i+32):numVertices);
-      for(int j = start; j < end; j++){
-	if (active[j])
-	  Set_Bit_Only(bit_vector, j);
-      }
-    }
-  }else {
-    long m = Frontier.numNonzeros();
-#ifdef DEBUG
-    cout << "sparse frontier: " << endl;
-    cout << "m: " << m << endl;
-#endif
-    for(int i = 0; i < m; i++){
-      Set_Bit_Only(bit_vector, Frontier.s[i]);
-    
-     }  
-    } 
-  }
-
 template <class vertex>
 void Compute(graph<vertex>& GA, commandLine P) {
   long start = P.getOptionLongValue("-r",0);
@@ -171,10 +119,10 @@ void Compute(graph<vertex>& GA, commandLine P) {
   NumPaths[start] = 1.0;
 
 #ifdef DEBUG
-    singlethreadedUpdateCountBC_F = 0;
-    singlethreadedUpdateCountBC_BACK_F = 0;
-    singlethreadedAtomicUpdateCountBC_F = 0;
-    singlethreadedAtomicUpdateCountBC_BACK_F = 0;
+  singlethreadedUpdateCountBC_F = 0;
+  singlethreadedUpdateCountBC_BACK_F = 0;
+  singlethreadedAtomicUpdateCountBC_F = 0;
+  singlethreadedAtomicUpdateCountBC_BACK_F = 0;
 #endif
 
   bool* Visited = newA(bool,n);
@@ -193,25 +141,13 @@ void Compute(graph<vertex>& GA, commandLine P) {
   cout << "start out degree: " << GA.V[start].getOutDegree() << endl;
   #endif
 
-  int bit_vector_length = n / 32;
-  if(n % 32 != 0)
-    bit_vector_length++;
-  unsigned int* bitVector = (unsigned int*) _mm_malloc(sizeof(unsigned int) * bit_vector_length,64);
-
-  
-
   while(!Frontier.isEmpty()){ //first phase
 #ifdef DEBUG
     cout << "iter: " << round << endl;
     cout << "numActive: " << Frontier.numNonzeros() << endl;
 #endif
     round++;
-    
-    //startTime();
-    SetBitVectorWithFrontier(bitVector, bit_vector_length, Frontier, n);
-    //nextTime("Set Bit Vector time");
-
-    vertexSubset output = edgeMap(GA, Frontier, BC_F(NumPaths,Visited, bitVector),threshold);
+    vertexSubset output = edgeMap(GA, Frontier, BC_F(NumPaths,Visited),threshold);
     vertexMap(output, BC_Vertex_F(Visited)); //mark visited
     Levels.push_back(output); //save frontier onto Levels
     Frontier = output;
@@ -234,14 +170,8 @@ void Compute(graph<vertex>& GA, commandLine P) {
   GA.transpose();
  
   for(long r=round-2;r>=0;r--) { //backwards phase
-    
-    //startTime();
-    SetBitVectorWithFrontier(bitVector, bit_vector_length, Frontier, n);
-    //nextTime("Set bit vector time");
-
-
     vertexSubset output = edgeMap(GA, Frontier, 
-				  BC_Back_F(Dependencies,Visited, bitVector),threshold);
+				  BC_Back_F(Dependencies,Visited),threshold);
     output.del(); Frontier.del();
     Frontier = Levels[r]; //gets frontier from Levels array
     //vertex map to mark visited and update Dependencies scores
@@ -254,7 +184,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
   parallel_for(long i=0;i<n;i++) {
     Dependencies[i]=(Dependencies[i]-inverseNumPaths[i])/inverseNumPaths[i];
   }
-  
+
 #ifdef DEBUG
   cout << Dependencies[0] << endl;
   cout << Dependencies[4194303] << endl;
@@ -263,8 +193,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
   cout << " single threaded BC_F atomic update count: " << singlethreadedAtomicUpdateCountBC_F << endl;
   cout << " single threaded BC_BACK_F atomic update count: " << singlethreadedAtomicUpdateCountBC_BACK_F << endl;
 #endif
-  
-  _mm_free(bitVector);
+
   free(inverseNumPaths);
   free(Visited);
   free(Dependencies);
