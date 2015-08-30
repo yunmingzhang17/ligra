@@ -55,6 +55,10 @@ ifeq (${COARSE},1)
         PCFLAGS+=-DCOARSE
 endif
 
+ifeq (${BITVECTOR},1)
+        PCFLAGS+=-DBITVECTOR
+endif
+
 
 COMMON= ligra.h graph.h utils.h IO.h parallel.h gettime.h quickSort.h parseCommandLine.h
 
