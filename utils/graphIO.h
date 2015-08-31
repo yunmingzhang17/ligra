@@ -31,7 +31,7 @@
 #include "quickSort.h"
 using namespace std;
 
-#define DEBUG
+//#define DEBUG
 
 // **************************************************************
 //    EDGE ARRAY REPRESENTATION

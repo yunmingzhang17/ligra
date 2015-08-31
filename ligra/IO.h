@@ -238,18 +238,29 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
     parallel_for(int i = 0; i < n; i++) sortedVertexIdMap[i] = i;
     
     #ifdef COARSE
+    #ifdef DEBUG
     cout << "coarse stable sort the edges based on in degrees" << endl;
+    #endif
+
     std::stable_sort(sortedVertexIdMap, sortedVertexIdMap + n, [&v](const int & a, const int & b) -> bool
       {
         return v[a].getInDegree() < v[b].getInDegree();
       });
-    #else
+/* #elseif RAND */
+/* #ifdef DEBUG */
+/*     cout << "random shuffle" << endl; */
+/* #endif */
+/*     std::random_shuffle(sortedVertexIdMap, sortedVertexIdMap + n); */
+    
+#else
     cout << "non-stable sorting the edges based on in degrees" << endl;
     std::sort(sortedVertexIdMap, sortedVertexIdMap + n, [&v](const int & a, const int & b) -> bool
       {
         return v[a].getInDegree() < v[b].getInDegree();
       });
-    #endif
+#endif
+
+
     for (int i = 0; i < n; i++) {
       reverseIdMap[sortedVertexIdMap[i]] = i; 
     }
@@ -279,9 +290,10 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
     }
 #endif
 
+#ifndef BENCHMARK
     cout << "node 0 is mapped to: " << reverseIdMap[0] << endl;
     cout << "node 13 is mapped to: " << reverseIdMap[13] << endl;
-
+#endif
     uintE * sortedOutEdges = newA(uintE, m);
     uintE * sortedInEdges = newA(uintE, m);
     vertex* sortedV = newA(vertex,n);

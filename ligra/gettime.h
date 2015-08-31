@@ -75,6 +75,15 @@ struct timer {
     return td;
   }
 
+  double nextPerIter(int iter) {
+    if (!on) return 0.0;
+    double t = getTime();
+    double td = t - lastTime;
+    totalTime += td;
+    lastTime = t;
+    return td/iter;
+  }
+
   void reportT(double time) {
     std::cout << std::setprecision(3) << time <<  std::endl;;
   }
@@ -101,7 +110,12 @@ struct timer {
 
   void reportNext() {reportTime(next());}
 
+  void reportNextPerIter(int iter) {reportTime(nextPerIter(iter));}
+
   void reportNext(std::string str) {std::cout << str << " : "; reportNext();}
+
+  void reportNextPerIter(std::string str, int iter) {std::cout << str << " "; reportNextPerIter(iter);}
+
 };
 
 static timer _tm;
@@ -110,7 +124,7 @@ static timer _tm;
 #define stopTime(_weight,_str) _tm.reportStop(_weight,_str);
 #define reportTime(_str) _tm.reportTotal(_str);
 #define nextTime(_string) _tm.reportNext(_string);
+#define nextTimePerIter(_string, _iter) _tm.reportNextPerIter(_string, _iter);
 #define nextTimeN() _tm.reportT(_tm.next());
 
 #endif // _BENCH_GETTIME_INCLUDED
-

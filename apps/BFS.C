@@ -71,16 +71,23 @@ void Compute(graph<vertex>& GA, commandLine P) {
   atomicUpdateCount = 0;
   #endif
 
+  #ifdef BENCHMARK
+  startTime();
+  #endif
+
   while(!Frontier.isEmpty()){ //loop until frontier is empty
     #ifdef DEBUG
     cout << "iter: " << iter << endl;
     cout << "numActive: " << Frontier.numNonzeros() << endl;
-    iter++;
     #endif
     vertexSubset output = edgeMap(GA, Frontier, BFS_F(Parents),GA.m/20);    
     Frontier.del();
     Frontier = output; //set new frontier
   }
+
+#ifdef BENCHMARK
+  nextTimePerIter("time_for_all_iterations,", 1);
+#endif
 
   #ifdef DEBUG
   cout << "non atomic update count (single threaded test): " << updateCount << endl;

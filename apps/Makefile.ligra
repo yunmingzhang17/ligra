@@ -63,6 +63,10 @@ ifeq (${BENCHMARK},1)
         PCFLAGS+=-DBENCHMARK
 endif
 
+ifeq (${RAND},1)
+        PCFLAGS+=-DRAND
+endif
+
 
 COMMON= ligra.h graph.h utils.h IO.h parallel.h gettime.h quickSort.h parseCommandLine.h
 

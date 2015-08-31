@@ -140,6 +140,10 @@ void Compute(graph<vertex>& GA, commandLine P) {
   cout << "start in degree: " << GA.V[start].getInDegree() << endl;
   cout << "start out degree: " << GA.V[start].getOutDegree() << endl;
   #endif
+  
+#ifdef BENCHMARK
+  startTime();
+#endif
 
   while(!Frontier.isEmpty()){ //first phase
 #ifdef DEBUG
@@ -184,6 +188,10 @@ void Compute(graph<vertex>& GA, commandLine P) {
   parallel_for(long i=0;i<n;i++) {
     Dependencies[i]=(Dependencies[i]-inverseNumPaths[i])/inverseNumPaths[i];
   }
+
+#ifdef BENCHMARK
+  nextTimePerIter("time_for_all_iterations,", 1);
+#endif
 
 #ifdef DEBUG
   cout << Dependencies[0] << endl;

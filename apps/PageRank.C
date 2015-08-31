@@ -99,8 +99,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
   long iter = 0;
   
   #ifdef BENCHMARK
-  struct timeval before, after, diff;
-  gettimeofday(&before, 0);
+  startTime();
   #endif
 
   while(iter++ < maxIters){
@@ -142,9 +141,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
   }
 
 #ifdef BENCHMARK
-  gettimeofday(&after, 0);
-  timersub(&after, &before, &diff);
-  printf("time_per_iter,%ld.%06ld\n", (long) diff.tv_sec/iter,(long) diff.tv_usec/iter);
+  nextTimePerIter("time_per_iter,", iter);
 #else
   printf("PageRank took %d iterations, max iter: %d, rank sum: %f\n", iter, maxIters, rankSum);
 #endif
