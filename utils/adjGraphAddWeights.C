@@ -38,8 +38,8 @@ int parallel_main(int argc, char* argv[]) {
 
   graph<intT> G = readGraphFromFile<intT>(iFile);
 
-  uintT m = G.m;
-  intT n = G.n;
+  long m = G.m;
+  long n = G.n;
   
   intT* Weights = newA(intT,m);
 
@@ -52,8 +52,13 @@ int parallel_main(int argc, char* argv[]) {
     //Choices[2*i+1] = -(i/10)-1;
   }
 
+<<<<<<< HEAD
   parallel_for (intT i=0;i<m;i++) {
     Weights[i] = Choices[ligra_hash((uintT)i) % (2*maxEdgeLen)];
+=======
+  parallel_for (long i=0;i<m;i++) {
+    Weights[i] = Choices[hash((uintT)i) % (2*maxEdgeLen)];
+>>>>>>> 799c2428410a6aec7d62726bdc120d392a44f9c0
     //if(i%1000==0 && Weights[i] < 0) Weights[i]*=-1;
   }
   free(Choices);
@@ -61,7 +66,7 @@ int parallel_main(int argc, char* argv[]) {
   wghVertex<intT>* WV = newA(wghVertex<intT>,n);
   intT* Neighbors_start = G.allocatedInplace+2+n;
 
-  parallel_for(intT i=0;i<n;i++){
+  parallel_for(long i=0;i<n;i++){
     WV[i].Neighbors = G.V[i].Neighbors;
     WV[i].degree = G.V[i].degree;
     intT offset = G.V[i].Neighbors - Neighbors_start;
@@ -69,12 +74,12 @@ int parallel_main(int argc, char* argv[]) {
   }
 
   //symmetrize
-  parallel_for(intT i=0;i<n;i++){
-    parallel_for(intT j=0;j<WV[i].degree;j++){
-      intT ngh = WV[i].Neighbors[j];
+  parallel_for(long i=0;i<n;i++){
+    parallel_for(long j=0;j<WV[i].degree;j++){
+      uintT ngh = WV[i].Neighbors[j];
       if(ngh > i) {
-	for(intT k=0;k<WV[ngh].degree;k++) {
-	  intT ngh_ngh = WV[ngh].Neighbors[k];
+	for(long k=0;k<WV[ngh].degree;k++) {
+	  uintT ngh_ngh = WV[ngh].Neighbors[k];
 	  if(ngh_ngh == i) {
 	    WV[i].nghWeights[j] = WV[ngh].nghWeights[k];
 	    break;
