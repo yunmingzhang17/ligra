@@ -77,10 +77,10 @@ struct PR_Vertex_Reset {
 
 template <class vertex>
 void Compute(graph<vertex>& GA, commandLine P) {
-  long maxIters = P.getOptionLongValue("-maxiters",20);
+  long maxIters = P.getOptionLongValue("-maxiters",5);
   const intE n = GA.n;
   const double damping = 0.85, epsilon = 0.0000001;
-  printf("graph number of vertices: %d number of edges: %d \n", n, GA.m);
+  //printf("graph number of vertices: %d number of edges: %d \n", n, GA.m);
 
   double one_over_n = 1/(double)n;
   double* p_curr = newA(double,n);
@@ -97,6 +97,12 @@ void Compute(graph<vertex>& GA, commandLine P) {
   double rankSum;
 
   long iter = 0;
+  
+  #ifdef BENCHMARK
+  struct timeval before, after, diff;
+  gettimeofday(&before, 0);
+  #endif
+
   while(iter++ < maxIters){
     #ifdef DEBUG1  
     for(int i = 0; i < n; i++) {
@@ -135,6 +141,13 @@ void Compute(graph<vertex>& GA, commandLine P) {
 
   }
 
+#ifdef BENCHMARK
+  gettimeofday(&after, 0);
+  timersub(&after, &before, &diff);
+  printf("time_per_iter,%ld.%06ld\n", (long) diff.tv_sec/iter,(long) diff.tv_usec/iter);
+#else
   printf("PageRank took %d iterations, max iter: %d, rank sum: %f\n", iter, maxIters, rankSum);
+#endif
+
   Frontier.del(); free(p_curr); free(p_next); 
 }

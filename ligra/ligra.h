@@ -570,9 +570,13 @@ int parallel_main(int argc, char* argv[]) {
     int c = getchar();
 #endif
     for(int r=0;r<rounds;r++) {
+      #ifndef BENCHMARK
       startTime();
+      #endif
       Compute(G,P);
+      #ifndef BENCHMARK
       nextTime("Running time");
+      #endif
       if(G.transposed) G.transpose();
     }
     G.del();
