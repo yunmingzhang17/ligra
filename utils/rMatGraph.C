@@ -27,11 +27,8 @@ using namespace benchIO;
 using namespace std;
 
 double hashDouble(intT i) {
-<<<<<<< HEAD
+
   return ((double) (ligra_hash((uintT)i))/((double) ((long) 1 << 32) - 1));}
-=======
-  return ((double) (hash((uintT)i))/((double) UINT_T_MAX));}
->>>>>>> 799c2428410a6aec7d62726bdc120d392a44f9c0
 
 template <class intT>
 struct rMat {

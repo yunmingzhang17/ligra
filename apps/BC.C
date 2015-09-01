@@ -196,6 +196,17 @@ void Compute(graph<vertex>& GA, commandLine P) {
 #ifdef DEBUG
   cout << Dependencies[0] << endl;
   cout << Dependencies[4194303] << endl;
+  
+  double dependenciesSum, numPathsSum = 0.0;
+  for (int i = 0; i < n; i++) {
+    if (! std::isnan(Dependencies[i]) && ! std::isinf(Dependencies[i]))
+      dependenciesSum += Dependencies[i];
+    if (! std::isnan(NumPaths[i]) && ! std::isinf(NumPaths[i]))
+      numPathsSum += NumPaths[i];
+  }
+
+  cout << "numPathSum: " << numPathsSum << " depenciesSum: " << dependenciesSum << endl;
+
   cout << " single threaded BC_F non atomic update count: " << singlethreadedUpdateCountBC_F << endl;
   cout << " single threaded BC_BACK_F non atomic update count: " << singlethreadedUpdateCountBC_BACK_F << endl;
   cout << " single threaded BC_F atomic update count: " << singlethreadedAtomicUpdateCountBC_F << endl;
