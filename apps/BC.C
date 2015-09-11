@@ -146,15 +146,39 @@ void Compute(graph<vertex>& GA, commandLine P) {
 #endif
 
   while(!Frontier.isEmpty()){ //first phase
+    round++;
+#ifdef DEBUG2
+    startTime();
+#endif
+
 #ifdef DEBUG
     cout << "iter: " << round << endl;
     cout << "numActive: " << Frontier.numNonzeros() << endl;
 #endif
-    round++;
+ 
     vertexSubset output = edgeMap(GA, Frontier, BC_F(NumPaths,Visited),threshold);
     vertexMap(output, BC_Vertex_F(Visited)); //mark visited
     Levels.push_back(output); //save frontier onto Levels
     Frontier = output;
+#ifdef DEBUG
+    
+  double numPathsSum = 0.0;
+  for (int i = 0; i < n; i++) {
+    if (! std::isnan(NumPaths[i]) && ! std::isinf(NumPaths[i])){
+      numPathsSum += NumPaths[i];    
+      //cout << "numPaths for i: " << i << " is " << NumPaths[i] << endl;
+    }
+  }
+
+  cout << "numPathSum: " << numPathsSum <<  endl;
+#endif
+#ifdef DEBUG2
+  if (Frontier.isDense)
+    cout << "dense"<<endl;
+  cout << "round: " << round << endl;
+  nextTime("Running time");
+#endif
+
   }
 
   fType* Dependencies = newA(fType,n);
@@ -174,12 +198,19 @@ void Compute(graph<vertex>& GA, commandLine P) {
   GA.transpose();
  
   for(long r=round-2;r>=0;r--) { //backwards phase
+#ifdef DEBUG2
+    startTime();
+#endif
     vertexSubset output = edgeMap(GA, Frontier, 
 				  BC_Back_F(Dependencies,Visited),threshold);
     output.del(); Frontier.del();
     Frontier = Levels[r]; //gets frontier from Levels array
     //vertex map to mark visited and update Dependencies scores
     vertexMap(Frontier,BC_Back_Vertex_F(Visited,Dependencies,inverseNumPaths));
+#ifdef DEBUG2
+    cout << "r: " << round << endl;
+    nextTime("Running time");
+#endif
   }
   
   Frontier.del();
@@ -187,25 +218,32 @@ void Compute(graph<vertex>& GA, commandLine P) {
   //Update dependencies scores
   parallel_for(long i=0;i<n;i++) {
     Dependencies[i]=(Dependencies[i]-inverseNumPaths[i])/inverseNumPaths[i];
+
   }
 
 #ifdef BENCHMARK
   nextTimePerIter("time_for_all_iterations,", 1);
 #endif
 
-#ifdef DEBUG
-  cout << Dependencies[0] << endl;
-  cout << Dependencies[4194303] << endl;
+#ifdef DEBUG2
+  //cout << Dependencies[0] << endl;
+  //cout << Dependencies[4194303] << endl;
   
   double dependenciesSum, numPathsSum = 0.0;
   for (int i = 0; i < n; i++) {
     if (! std::isnan(Dependencies[i]) && ! std::isinf(Dependencies[i]))
       dependenciesSum += Dependencies[i];
-    if (! std::isnan(NumPaths[i]) && ! std::isinf(NumPaths[i]))
-      numPathsSum += NumPaths[i];
+    if (! std::isnan(NumPaths[i]) && ! std::isinf(NumPaths[i])){
+      numPathsSum += NumPaths[i];    
+      //cout << "numPaths for i: " << i << " is " << NumPaths[i] << endl;
+    }
   }
 
   cout << "numPathSum: " << numPathsSum << " depenciesSum: " << dependenciesSum << endl;
+#endif
+
+#ifdef DEBUG
+
 
   cout << " single threaded BC_F non atomic update count: " << singlethreadedUpdateCountBC_F << endl;
   cout << " single threaded BC_BACK_F non atomic update count: " << singlethreadedUpdateCountBC_BACK_F << endl;

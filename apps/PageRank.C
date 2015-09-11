@@ -23,7 +23,8 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "ligra.h"
 #include "math.h"
-#define HACK
+//#define HACK
+#define NONORM
 
 template <class vertex>
 struct PR_F {
@@ -52,7 +53,12 @@ struct PR_Vertex_F {
   double* p_next;
   PR_Vertex_F(double* _p_curr, double* _p_next, double _damping, intE n) :
     p_curr(_p_curr), p_next(_p_next), 
+#ifndef NONORM
     damping(_damping), addedConstant((1-_damping)*(1/(double)n)){}
+#else
+  damping(_damping), addedConstant((1-_damping)){}
+#endif
+
   inline bool operator () (uintE i) {
  #ifdef DEBUG1
     cout << "PR_VERTEX_F  i: " << i << endl;
@@ -84,7 +90,12 @@ void Compute(graph<vertex>& GA, commandLine P) {
 
   double one_over_n = 1/(double)n;
   double* p_curr = newA(double,n);
+#ifndef NONORM
   {parallel_for(long i=0;i<n;i++) p_curr[i] = one_over_n;}//use 1 instead of 1/n
+#else
+  {parallel_for(long i=0;i<n;i++) p_curr[i] = 1.0;}//use 1 instead of 1/n
+#endif
+
   double* p_next = newA(double,n);
   {parallel_for(long i=0;i<n;i++) p_next[i] = 0;} //0 if unchanged
   bool* frontier = newA(bool,n);
