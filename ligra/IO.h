@@ -292,7 +292,7 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
 
 #ifndef BENCHMARK
     cout << "node 0 is mapped to: " << reverseIdMap[0] << endl;
-    cout << "node 13 is mapped to: " << reverseIdMap[13] << endl;
+    cout << "node 94 is mapped to: " << reverseIdMap[94] << endl;
 #endif
     uintE * sortedOutEdges = newA(uintE, m);
     uintE * sortedInEdges = newA(uintE, m);
