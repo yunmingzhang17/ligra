@@ -1,6 +1,7 @@
 #define WEIGHTED 1
 #include "ligra.h"
 #include "eigen_wrapper.hpp"
+#include <stdlib.h>
 
 int D = 20; //number of latent factors
 double lambda = 0.065;
@@ -19,6 +20,9 @@ struct vertex_data {
     return pvec[index];
   }
 };
+
+
+
 
 template <class vertex>
 struct ALS_Vertex_F {
@@ -51,11 +55,27 @@ struct ALS_Vertex_F {
 
   }
 };
+
+template<typename T>
+void init_feature_vectors(uint size, T& latent_factors_inmem, bool randomize = true, double scale = 1.0){
+  assert(size > 0);
+  srand48(time(NULL));
+  latent_factors_inmem.resize(size); // Initialize in-memory vertices.                 
+  if (!randomize)
+    return;
+  for (int i=0; i < (int)size; i++){
+    for (int j=0; j<D; j++)
+      latent_factors_inmem[i].pvec[j] = scale * drand48();
+  }
+}
   
 template <class vertex>
 void Compute(graph<vertex>& GA, commandLine P) {
   long n = GA.n;
   cout << "num vertices: " << n << endl;
+  std::vector<vertex_data> latent_factors_inmem;
+  init_feature_vectors<std::vector<vertex_data> >(n, latent_factors_inmem);
+
   bool* frontier = newA(bool,n);
   {parallel_for(long i=0;i<n;i++) frontier[i] = 1;}
   vertexSubset Frontier(n,n,frontier);
