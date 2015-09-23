@@ -5,7 +5,7 @@
 
 #define COMPUTE_RMSE 1 //single threaded debug flag
 //#define DEBUG 1
-int D = 4; //number of latent factors
+int D = 20; //number of latent factors
 double lambda = 0.065;
 double minval = 1; //max allowed value in matrix                         
 double maxval = 5; //min allowed value in matrix
@@ -102,6 +102,7 @@ struct ALS_Vertex_F {
 
 
 double training_rmse(int iteration, long numEdges ){  
+  numEdges = numEdges/2; //because we are doubling the number of edges compare to Graphchi
   double ret = sqrt(rmse/numEdges); 
   cout << "Iteration: " << iteration << " Training RMSE: " << ret << endl;
   return ret;
