@@ -9,7 +9,7 @@ int D = 20; //number of latent factors
 double lambda = 0.065;
 double minval = 1; //max allowed value in matrix                         
 double maxval = 5; //min allowed value in matrix
-
+int numUsers = 0;
 
 #ifdef COMPUTE_RMSE
 double rmse;
@@ -86,8 +86,10 @@ struct ALS_Vertex_F {
       XtX.triangularView<Eigen::Upper>() += nbr_latent.pvec * nbr_latent.pvec.transpose();
 
 #ifdef COMPUTE_RMSE
-      double prediction;
-      rmse += als_predict(vdata, nbr_latent, observation, prediction);
+      if (i < numUsers){//acumulate RMSE only for users
+	double prediction;
+	rmse += als_predict(vdata, nbr_latent, observation, prediction);
+      }
 #endif
 
     }    
@@ -103,8 +105,9 @@ struct ALS_Vertex_F {
 
 double training_rmse(int iteration, long numEdges ){  
   numEdges = numEdges/2; //because we are doubling the number of edges compare to Graphchi
+  
   double ret = sqrt(rmse/numEdges); 
-  cout << "Iteration: " << iteration << " Training RMSE: " << ret << endl;
+  cout << "Iteration: " << iteration << "rmse: " << rmse <<  " Training RMSE: " << ret << endl;
   return ret;
 }
 
@@ -125,6 +128,7 @@ void init_feature_vectors(uint size, T& latent_factors_inmem, bool randomize = t
   
 template <class vertex>
 void Compute(graph<vertex>& GA, commandLine P) {
+  numUsers = P.getOptionLongValue("-nusers",0);
   long n = GA.n;
   long numEdges = GA.m;
   rmse = 0;
