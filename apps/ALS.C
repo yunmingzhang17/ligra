@@ -30,8 +30,8 @@ struct ALS_Vertex_F {
   //vector<float> * latent_factors_inmem;
   std::vector<vertex_data> latent_factors_inmem;
 
-  ALS_Vertex_F(vertex* _V) :
-    V(_V){};
+  ALS_Vertex_F(vertex* _V, std::vector<vertex_data> _latent_factors_inmem) :
+    V(_V), latent_factors_inmem(_latent_factors_inmem){};
  
   inline bool operator() (uintE i){
     cout << "vertex: " << i << endl;
@@ -79,6 +79,6 @@ void Compute(graph<vertex>& GA, commandLine P) {
   bool* frontier = newA(bool,n);
   {parallel_for(long i=0;i<n;i++) frontier[i] = 1;}
   vertexSubset Frontier(n,n,frontier);
-  vertexMap(Frontier, ALS_Vertex_F<vertex>(GA.V));
+  vertexMap(Frontier, ALS_Vertex_F<vertex>(GA.V, latent_factors_inmem));
   Frontier.del();
 }
