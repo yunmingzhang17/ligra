@@ -38,15 +38,15 @@ struct ALS_Vertex_F {
     vertex_data & vdata = latent_factors_inmem[i];
     mat XtX = mat::Zero(D, D); 
     vec Xty = vec::Zero(D);
-
-
     uintE d = V[i].getInDegree();
     for (uintE j = 0; j < d; j++){
       uintE ngh = V[i].getInNeighbor(j);
-      intE rating = V[i].getInWeight(j);
-      cout << "edge src: " << i << " dst: " << ngh << " rating: " << rating << endl; 
-    }
-    
+      float observation = V[i].getInWeight(j);
+      vertex_data & nbr_latent = latent_factors_inmem[ngh];
+      cout << "edge src: " << i << " dst: " << ngh << " rating: " << observation << endl; 
+      Xty += nbr_latent.pvec * observation;
+      XtX.triangularView<Eigen::Upper>() += nbr_latent.pvec * nbr_latent.pvec.transpose();
+    }    
     double regularization = lambda;
     //if (regnormal)
     //regularization *= vertex.num_edges();
