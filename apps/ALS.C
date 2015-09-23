@@ -4,11 +4,12 @@
 #include <stdlib.h>
 
 #define COMPUTE_RMSE 1 //single threaded debug flag
-
-int D = 20; //number of latent factors
+//#define DEBUG 1
+int D = 4; //number of latent factors
 double lambda = 0.065;
-double minval = -1e100; //max allowed value in matrix                         
-double maxval = 1e100; //min allowed value in matrix
+double minval = 1; //max allowed value in matrix                         
+double maxval = 5; //min allowed value in matrix
+
 
 #ifdef COMPUTE_RMSE
 double rmse;
@@ -28,7 +29,7 @@ struct vertex_data {
   }
 };
 
-
+std::vector<vertex_data> latent_factors_inmem;
 
 /** compute a missing value based on ALS algorithm */
 float als_predict(const vertex_data& user, 
@@ -54,14 +55,19 @@ template <class vertex>
 struct ALS_Vertex_F {
   vertex* V;
   //vector<float> * latent_factors_inmem;
-  std::vector<vertex_data> latent_factors_inmem;
 
-  ALS_Vertex_F(vertex* _V, std::vector<vertex_data> _latent_factors_inmem) :
-    V(_V), latent_factors_inmem(_latent_factors_inmem){};
+
+  ALS_Vertex_F(vertex* _V) :
+    V(_V){};
  
   inline bool operator() (uintE i){
 #ifdef DEBUG
     cout << "vertex: " << i << endl;
+    cout << "latent factor " << endl;
+    for (int j = 0; j < D; j++){
+      cout << latent_factors_inmem[i].pvec[j] << endl;
+    }
+    cout << endl;
 #endif
     vertex_data & vdata = latent_factors_inmem[i];
     mat XtX = mat::Zero(D, D); 
@@ -72,7 +78,8 @@ struct ALS_Vertex_F {
       float observation = V[i].getInWeight(j);
       vertex_data & nbr_latent = latent_factors_inmem[ngh];
 #ifdef DEBUG
-      cout << "edge src: " << i << " dst: " << ngh << " rating: " << observation << endl; 
+      cout << "edge src: " << i << " dst: " << ngh << " rating: " << observation << endl;
+      
 #endif
 
       Xty += nbr_latent.pvec * observation;
@@ -123,18 +130,19 @@ void Compute(graph<vertex>& GA, commandLine P) {
   cout << "num vertices: " << n << endl;
   cout << "num edges: " << numEdges << endl;
 
-  std::vector<vertex_data> latent_factors_inmem;
+  
   init_feature_vectors<std::vector<vertex_data> >(n, latent_factors_inmem);
 
   bool* frontier = newA(bool,n);
   {parallel_for(long i=0;i<n;i++) frontier[i] = 1;}
   vertexSubset Frontier(n,n,frontier);
-  vertexMap(Frontier, ALS_Vertex_F<vertex>(GA.V, latent_factors_inmem));
-#ifdef COMPUTE_RMSE
-  training_rmse(1, numEdges);
-#endif
-  rmse = 0;
 
-  delete[] latent_factors_inmem;
+  for (int iter = 0; iter < 5; iter++){    
+    vertexMap(Frontier, ALS_Vertex_F<vertex>(GA.V));
+#ifdef COMPUTE_RMSE
+    training_rmse(iter, numEdges);
+#endif
+    rmse = 0;
+  }
   Frontier.del();
 }
