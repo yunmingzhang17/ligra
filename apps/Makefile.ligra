@@ -16,7 +16,8 @@ PLFLAGS = -fcilkplus -lcilkrts
 
 else ifdef MKLROOT
 PCC = icpc
-PCFLAGS = -g -O3 -DCILKP  -std=c++0x $(INTT) $(INTE)
+#PCFLAGS = -g -O3 -DCILKP  -std=c++0x $(INTT) $(INTE)
+PCFLAGS = -g -O3 -DCILKP  $(INTT) $(INTE)
 
 else ifdef OPENMP
 PCC = g++
@@ -70,7 +71,7 @@ endif
 
 COMMON= ligra.h graph.h utils.h IO.h parallel.h gettime.h quickSort.h parseCommandLine.h
 
-ALL= BFS BC Components Radii PageRank PageRankDelta BellmanFord BFSCC BFS-Bitvector
+ALL= BFS BC Components Radii PageRank PageRankDelta BellmanFord BFSCC BFS-Bitvector ALS
 
 all: $(ALL)
 

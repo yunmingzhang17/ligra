@@ -1,9 +1,11 @@
 #define WEIGHTED 1
 #include "ligra.h"
+#include "eigen_wrapper.hpp"
 
 template <class vertex>
 struct ALS_Vertex_F {
   vertex* V;
+  vector<float> * latent_factors_inmem;
 
   ALS_Vertex_F(vertex* _V) :
     V(_V){};
