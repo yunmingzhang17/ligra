@@ -3,7 +3,7 @@
 #include "eigen_wrapper.hpp"
 #include <stdlib.h>
 
-#define COMPUTE_RMSE 1 //single threaded debug flag
+//#define COMPUTE_RMSE 1 //single threaded debug flag
 //#define DEBUG 1
 int D = 20; //number of latent factors
 double lambda = 0.065;
@@ -102,6 +102,7 @@ struct ALS_Vertex_F {
   }
 };
 
+#ifdef COMPUTE_RMSE
 
 double training_rmse(int iteration, long numEdges ){  
   numEdges = numEdges/2; //because we are doubling the number of edges compare to Graphchi
@@ -111,7 +112,7 @@ double training_rmse(int iteration, long numEdges ){
   return ret;
 }
 
-
+#endif
 
 template<typename T>
 void init_feature_vectors(uint size, T& latent_factors_inmem, bool randomize = true, double scale = 1.0){
@@ -131,7 +132,10 @@ void Compute(graph<vertex>& GA, commandLine P) {
   numUsers = P.getOptionLongValue("-nusers",0);
   long n = GA.n;
   long numEdges = GA.m;
+#ifdef COMPUTE_RMSE
   rmse = 0;
+#endif
+
   cout << "num vertices: " << n << endl;
   cout << "num edges: " << numEdges << endl;
 
@@ -146,8 +150,8 @@ void Compute(graph<vertex>& GA, commandLine P) {
     vertexMap(Frontier, ALS_Vertex_F<vertex>(GA.V));
 #ifdef COMPUTE_RMSE
     training_rmse(iter, numEdges);
-#endif
     rmse = 0;
+#endif
   }
   Frontier.del();
 }
