@@ -3,7 +3,7 @@
 #include "eigen_wrapper.hpp"
 #include <stdlib.h>
 
-//#define COMPUTE_RMSE 1 //single threaded debug flag
+#define COMPUTE_RMSE 1 //single threaded debug flag
 //#define DEBUG 1
 #define PRECOMPUTE 1
 int D = 20; //number of latent factors
@@ -11,6 +11,7 @@ double lambda = 0.065;
 double minval = 1; //max allowed value in matrix                         
 double maxval = 5; //min allowed value in matrix
 int numUsers = 0;
+int threshold = 0;
 
 #ifdef COMPUTE_RMSE
 double rmse;
@@ -88,9 +89,7 @@ struct ALS_Vertex_F {
     for (uintE j = 0; j < d; j++){
       uintE ngh = V[i].getInNeighbor(j);
 
-      // if (V[ngh].getOutDegree() > 400){        
-      //  	continue;
-      // }
+      
 
       float observation = V[i].getInWeight(j);
       vertex_data & nbr_latent = latent_factors_inmem[ngh];
@@ -100,7 +99,24 @@ struct ALS_Vertex_F {
 #endif
 
       Xty += nbr_latent.pvec * observation;
+
+#ifdef PRECOMPUTE    
+      
+      //std::map<int,mat>::iterator it = largeOutDegreeMap.find(ngh);
+      //if(it != largeOutDegreeMap.end()){
+      //if (largeOutDegreeMap.count(ngh)){
+      if (V[ngh].getOutDegree() > threshold){
+	  //element found;
+	XtX.triangularView<Eigen::Upper>() += largeOutDegreeMap[ngh];
+      } else {
+	XtX.triangularView<Eigen::Upper>() += nbr_latent.pvec * nbr_latent.pvec.transpose();
+      }
+#else
+
       XtX.triangularView<Eigen::Upper>() += nbr_latent.pvec * nbr_latent.pvec.transpose();
+      //nbr_latent.pvec.transpose();
+
+#endif
       //XtX += nbr_latent.pvec * nbr_latent.pvec.transpose();
 
 #ifdef COMPUTE_RMSE
@@ -115,7 +131,7 @@ struct ALS_Vertex_F {
     //if (regnormal)
     //regularization *= vertex.num_edges();
     for(int i=0; i < D; i++) XtX(i,i) += regularization;
-    XtX = XtX.triangularView<Eigen::Upper>();
+    //XtX = XtX.triangularView<Eigen::Upper>();
     vdata.pvec = XtX.selfadjointView<Eigen::Upper>().ldlt().solve(Xty);
 
   }
@@ -127,7 +143,7 @@ double training_rmse(int iteration, long numEdges ){
   numEdges = numEdges/2; //because we are doubling the number of edges compare to Graphchi
   
   double ret = sqrt(rmse/numEdges); 
-  cout << "Iteration: " << iteration << "rmse: " << rmse <<  " Training RMSE: " << ret << endl;
+  cout << "Iteration: " << iteration << " rmse: " << rmse <<  " Training RMSE: " << ret << endl;
   return ret;
 }
 
@@ -168,7 +184,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
 #ifdef PRECOMPUTE
   //do a sequential intiialization to avoid data races (should use a parallel version later
   startTime();
-  int threshold = 400;
+  threshold = 400;
   std::vector<int>* largeOutDegreeNodes = new std::vector<int>();
   for (long i = 0; i < n; i++) {
     if(GA.V[i].getOutDegree() > threshold){
@@ -196,4 +212,5 @@ void Compute(graph<vertex>& GA, commandLine P) {
 #endif
   }
   Frontier.del();
+
 }
