@@ -5,6 +5,7 @@
 
 //#define COMPUTE_RMSE 1 //single threaded debug flag
 //#define DEBUG 1
+#define PRECOMPUTE 1
 int D = 20; //number of latent factors
 double lambda = 0.065;
 double minval = 1; //max allowed value in matrix                         
@@ -30,6 +31,17 @@ struct vertex_data {
 };
 
 std::vector<vertex_data> latent_factors_inmem;
+
+#ifdef PRECOMPUTE
+std::map<int, mat> largeOutDegreeMap;
+void computeHighOutDegreeXTX(std::vector<int>* largeOutDegreeList){
+  parallel_for (int i = 0; i < largeOutDegreeList->size(); i++){
+    int vertexId = (*largeOutDegreeList)[i];
+    largeOutDegreeMap[vertexId] = (latent_factors_inmem[vertexId].pvec*latent_factors_inmem[vertexId].pvec.transpose());
+  }
+}
+
+#endif
 
 /** compute a missing value based on ALS algorithm */
 float als_predict(const vertex_data& user, 
@@ -75,6 +87,11 @@ struct ALS_Vertex_F {
     uintE d = V[i].getInDegree();
     for (uintE j = 0; j < d; j++){
       uintE ngh = V[i].getInNeighbor(j);
+
+      // if (V[ngh].getOutDegree() > 400){        
+      //  	continue;
+      // }
+
       float observation = V[i].getInWeight(j);
       vertex_data & nbr_latent = latent_factors_inmem[ngh];
 #ifdef DEBUG
@@ -84,6 +101,7 @@ struct ALS_Vertex_F {
 
       Xty += nbr_latent.pvec * observation;
       XtX.triangularView<Eigen::Upper>() += nbr_latent.pvec * nbr_latent.pvec.transpose();
+      //XtX += nbr_latent.pvec * nbr_latent.pvec.transpose();
 
 #ifdef COMPUTE_RMSE
       if (i < numUsers){//acumulate RMSE only for users
@@ -97,6 +115,7 @@ struct ALS_Vertex_F {
     //if (regnormal)
     //regularization *= vertex.num_edges();
     for(int i=0; i < D; i++) XtX(i,i) += regularization;
+    XtX = XtX.triangularView<Eigen::Upper>();
     vdata.pvec = XtX.selfadjointView<Eigen::Upper>().ldlt().solve(Xty);
 
   }
@@ -132,6 +151,8 @@ void Compute(graph<vertex>& GA, commandLine P) {
   numUsers = P.getOptionLongValue("-nusers",0);
   long n = GA.n;
   long numEdges = GA.m;
+
+
 #ifdef COMPUTE_RMSE
   rmse = 0;
 #endif
@@ -139,8 +160,25 @@ void Compute(graph<vertex>& GA, commandLine P) {
   cout << "num vertices: " << n << endl;
   cout << "num edges: " << numEdges << endl;
 
+
   
   init_feature_vectors<std::vector<vertex_data> >(n, latent_factors_inmem);
+
+
+#ifdef PRECOMPUTE
+  //do a sequential intiialization to avoid data races (should use a parallel version later
+  startTime();
+  int threshold = 400;
+  std::vector<int>* largeOutDegreeNodes = new std::vector<int>();
+  for (long i = 0; i < n; i++) {
+    if(GA.V[i].getOutDegree() > threshold){
+      largeOutDegreeNodes->push_back(i);
+      largeOutDegreeMap[i] = latent_factors_inmem[i].pvec*latent_factors_inmem[i].pvec.transpose(); 
+    }
+  }
+  nextTime("Init time");
+  startTime();
+#endif
 
   bool* frontier = newA(bool,n);
   {parallel_for(long i=0;i<n;i++) frontier[i] = 1;}
@@ -148,6 +186,10 @@ void Compute(graph<vertex>& GA, commandLine P) {
 
   for (int iter = 0; iter < 5; iter++){    
     vertexMap(Frontier, ALS_Vertex_F<vertex>(GA.V));
+#ifdef PRECOMPUTE
+    computeHighOutDegreeXTX(largeOutDegreeNodes);
+#endif
+
 #ifdef COMPUTE_RMSE
     training_rmse(iter, numEdges);
     rmse = 0;
