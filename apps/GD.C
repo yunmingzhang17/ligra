@@ -22,7 +22,7 @@ struct GD_F {
     }
     return 1;
   }
-  inline bool updateAtomic (uintE s, uintE d) { //atomic Update
+  inline bool updateAtomic (uintE s, uintE d, intE edgeLen) { //atomic Update
     //no needed as we will always do pull based
     //writeAdd(&p_next[d],p_curr[s]/V[s].getOutDegree());
     return 1;
@@ -41,6 +41,7 @@ struct GD_Vertex_F {
   inline bool operator () (uintE i) {
     for (int j = 0; j < K; j++){
       latent_curr[K*i + j] += step*(-lambda*latent_curr[K*i + j] + error[K*i + j]);
+      error[K*i+j] = 0.0;
     }
     return 1;
   }
@@ -49,12 +50,31 @@ struct GD_Vertex_F {
 template <class vertex>
 void Compute(graph<vertex>& GA, commandLine P) {
   
-  //initialize old and new latent vectors
+  //initialize latent vectors and errors
+  srand(0);
+  const intE n = GA.n;
+  double* latent_curr = newA(double, K*n);
+  double* error = newA(double, K*n);
+  int numIter = 10;
+  double step = 0.00000035;
+  double lambda = 0.001;
 
-  //edgemap to accumulate new latent vectors
+  parallel_for(int i = 0; i < K*n; i++){
+    latent_curr[i] = rand();
+    error[i] = 0.0;
+  }
 
-  //vertexmap to update teh nex latent vectors
+  bool* frontier = newA(bool,n);
+  {parallel_for(long i=0;i<n;i++) frontier[i] = 1;}
+  vertexSubset Frontier(n,n,frontier);
 
-  //swap old and new latent vectors
+  for (int iter = 0; iter < numIter; iter++){
+    //edgemap to accumulate error for each node
+    edgeMap(GA, Frontier, GD_F<vertex>(latent_curr,error,GA.V),GA.m/20);
+    //vertexmap to update the latent vectors
+    vertexMap(Frontier,GD_Vertex_F(latent_curr,error,step,lambda));
+  }
+
+  Frontier.del();
 
 }
