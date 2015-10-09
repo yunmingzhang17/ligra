@@ -5,7 +5,7 @@
 
 #define COMPUTE_RMSE 1 //single threaded debug flag
 //#define DEBUG 1
-#define PRECOMPUTE 1
+//#define PRECOMPUTE 1
 int D = 20; //number of latent factors
 double lambda = 0.065;
 double minval = 1; //max allowed value in matrix                         

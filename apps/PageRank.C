@@ -79,7 +79,7 @@ struct PR_Vertex_Reset {
   }
 };
 
-#define DEBUG2
+//#define DEBUG2
 
 template <class vertex>
 void Compute(graph<vertex>& GA, commandLine P) {
