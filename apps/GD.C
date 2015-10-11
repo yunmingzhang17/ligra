@@ -1,8 +1,12 @@
 #define WEIGHTED 1
 #include "ligra.h"
-
+#define COMPUTE_RMSE 1
 
 int K = 20; //dimensions of the latent vector
+
+#ifdef COMPUTE_RMSE
+double rmse;
+#endif
 
 template <class vertex>
 struct GD_F {
@@ -11,11 +15,20 @@ struct GD_F {
   GD_F(double* _latent_curr, double* _error, vertex* _V) : 
     latent_curr(_latent_curr), error(_error), V(_V) {}
   inline bool update(uintE s, uintE d, intE edgeLen){ //update function applies PageRank equation
+
+#ifdef DEBUG
+    cout << "edge src: " << s << " dst: " << d << " rating: " << edgeLen << endl;
+#endif
+
     double estimate = 0;
     for(int i = 0; i < K; i++){
       estimate += latent_curr[K*d+i]*latent_curr[K*s+i];
     }
     double err = edgeLen - estimate;
+
+    #ifdef COMPUTE_RMSE
+    rmse += err*err;
+    #endif
 
     for (int i = 0; i < K; i++){
       error[K*d + i] += latent_curr[K*s + i]*err;
@@ -39,6 +52,16 @@ struct GD_Vertex_F {
     latent_curr(_latent_curr), error(_error), 
     step(_step), lambda(_lambda){}
   inline bool operator () (uintE i) {
+
+#ifdef DEBUG
+    cout << "vertex: " << i << endl;
+    cout << "latent_factor: " << endl;
+    for (int j = 0; j < K; j++){
+      cout << latent_curr[K*i+j] << endl;
+    }
+    cout << endl;
+#endif
+
     for (int j = 0; j < K; j++){
       latent_curr[K*i + j] += step*(-lambda*latent_curr[K*i + j] + error[K*i + j]);
       error[K*i+j] = 0.0;
@@ -55,20 +78,31 @@ void Compute(graph<vertex>& GA, commandLine P) {
   const intE n = GA.n;
   double* latent_curr = newA(double, K*n);
   double* error = newA(double, K*n);
-  int numIter = 10;
+  int numIter = 5;
   double step = 0.00000035;
   double lambda = 0.001;
 
   parallel_for(int i = 0; i < K*n; i++){
-    latent_curr[i] = rand();
+#ifndef COMPUTE_RMSE
+    latent_curr[i] = ((double)rand()/(double)RAND_MAX);
+#else
+    latent_curr[i] = 0.5;
+#endif
     error[i] = 0.0;
   }
 
   bool* frontier = newA(bool,n);
   {parallel_for(long i=0;i<n;i++) frontier[i] = 1;}
   vertexSubset Frontier(n,n,frontier);
+#ifdef COMPUTE_RMSE
+  rmse = 0;
+#endif
 
   for (int iter = 0; iter < numIter; iter++){
+#ifdef COMPUTE_RMSE
+    cout << "sum of squared error: " << rmse << " for iter: " << iter << endl;
+    rmse = 0;
+#endif
     //edgemap to accumulate error for each node
     edgeMap(GA, Frontier, GD_F<vertex>(latent_curr,error,GA.V),GA.m/20);
     //vertexmap to update the latent vectors
