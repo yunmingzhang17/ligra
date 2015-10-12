@@ -117,7 +117,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
 
   for (int iter = 0; iter < numIter; iter++){
 #ifdef COMPUTE_RMSE
-    cout << "sum of squared error: " << rmse << " for iter: " << iter << endl;
+    cout << "sum of squared error: " << rmse/2 << " for iter: " << iter << endl;
     rmse = 0;
 #endif
     //edgemap to accumulate error for each node
