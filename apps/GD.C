@@ -1,6 +1,8 @@
 #define WEIGHTED 1
 #include "ligra.h"
-#define COMPUTE_RMSE 1
+//#define COMPUTE_RMSE 1
+//#define DEBUG2 1
+//#define DEBUG 1
 
 int K = 20; //dimensions of the latent vector
 
@@ -29,6 +31,11 @@ struct GD_F {
     #ifdef COMPUTE_RMSE
     rmse += err*err;
     #endif
+
+#ifdef DEBUG
+    cout << "rating: " << edgeLen << endl;
+    cout << "estimate: " << estimate << endl;
+#endif
 
     for (int i = 0; i < K; i++){
       error[K*d + i] += latent_curr[K*s + i]*err;
@@ -79,8 +86,18 @@ void Compute(graph<vertex>& GA, commandLine P) {
   double* latent_curr = newA(double, K*n);
   double* error = newA(double, K*n);
   int numIter = 5;
+#ifndef DEBUG
   double step = 0.00000035;
+#else
+  double step = 0.0035;
+#endif
+
   double lambda = 0.001;
+
+#ifdef DEBUG2
+  cout << "num vertices: " << n << endl;
+  cout << "num edges: " << GA.m << endl;
+#endif
 
   parallel_for(int i = 0; i < K*n; i++){
 #ifndef COMPUTE_RMSE
@@ -107,7 +124,15 @@ void Compute(graph<vertex>& GA, commandLine P) {
     edgeMap(GA, Frontier, GD_F<vertex>(latent_curr,error,GA.V),GA.m/20);
     //vertexmap to update the latent vectors
     vertexMap(Frontier,GD_Vertex_F(latent_curr,error,step,lambda));
+
+#ifdef DEBUG2
+    double latent_sum = 0.0;
+    for(long i=0;i<K*n;i++) latent_sum += latent_curr[i];
+    cout << "latent sum: " << latent_sum << endl;
+#endif
+
   }
+
 
   Frontier.del();
 
