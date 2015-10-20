@@ -1,10 +1,10 @@
 #define WEIGHTED 1
 #include "ligra.h"
 //#define COMPUTE_RMSE 1
-//#define DEBUG2 1
+#define DEBUG2 1
 //#define DEBUG 1
 
-int K = 20; //dimensions of the latent vector
+int K = 8; //dimensions of the latent vector
 
 #ifdef COMPUTE_RMSE
 double rmse;
@@ -12,9 +12,10 @@ double rmse;
 
 template <class vertex>
 struct GD_F {
-  double* latent_curr, *error;
+  double* latent_curr;
+  double* error;
   vertex* V;
-  GD_F(double* _latent_curr, double* _error, vertex* _V) : 
+  GD_F(double* _latent_curr, double*  _error, vertex* _V) : 
     latent_curr(_latent_curr), error(_error), V(_V) {}
   inline bool update(uintE s, uintE d, intE edgeLen){ //update function applies PageRank equation
 
@@ -23,8 +24,15 @@ struct GD_F {
 #endif
 
     double estimate = 0;
+    int current_offset = K*d;
+    int ngh_offset = K*s;
+
+    double * __restrict cur_latent =  &latent_curr[current_offset];
+    double * __restrict ngh_latent = &latent_curr[ngh_offset];
+
     for(int i = 0; i < K; i++){
-      estimate += latent_curr[K*d+i]*latent_curr[K*s+i];
+      //estimate += latent_curr[current_offset + i]*latent_curr[ngh_offset + i];
+      estimate +=  cur_latent[i]*ngh_latent[i];
     }
     double err = edgeLen - estimate;
 
@@ -37,8 +45,11 @@ struct GD_F {
     cout << "estimate: " << estimate << endl;
 #endif
 
+    double * __restrict cur_error = &error[current_offset];
+
     for (int i = 0; i < K; i++){
-      error[K*d + i] += latent_curr[K*s + i]*err;
+      //error[K*d + i] += latent_curr[K*s + i]*err;
+      cur_error[i] += ngh_latent[i]*err;
     }
     return 1;
   }
@@ -100,7 +111,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
 #endif
 
   parallel_for(int i = 0; i < K*n; i++){
-#ifndef COMPUTE_RMSE
+#ifdef RAND_INIT
     latent_curr[i] = ((double)rand()/(double)RAND_MAX);
 #else
     latent_curr[i] = 0.5;
@@ -122,8 +133,11 @@ void Compute(graph<vertex>& GA, commandLine P) {
 #endif
     //edgemap to accumulate error for each node
     edgeMap(GA, Frontier, GD_F<vertex>(latent_curr,error,GA.V),GA.m/20);
+    //nextTime("edgemap time");
+    //startTime();
     //vertexmap to update the latent vectors
     vertexMap(Frontier,GD_Vertex_F(latent_curr,error,step,lambda));
+    //nextTime("vertexmap time");
 
 #ifdef DEBUG2
     double latent_sum = 0.0;

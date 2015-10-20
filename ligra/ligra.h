@@ -520,11 +520,17 @@ vertexSubset edgeMap(graph<vertex> GA, vertexSubset &V, F f, intT threshold = -1
     if (option == DENSE_FORWARD) { 
 	R = edgeMapDenseForward(GA,V.d,f); 
 	} else { 
+      //checking the overhead in switching between push and pull
+      //nextTime("before edgemapdense");
+      //startTime();
+
 #ifndef RECURSIVE
 	R = edgeMapDense(GA, V.d, f, option);
 #else
 	R = recursiveEdgeMapDense(GA, V.d, f, option);
 #endif
+	//nextTime("after edgemapdense");
+
       }
     vertexSubset v1 = vertexSubset(numVertices, R);
     //cout << "size (D) = " << v1.m << endl;
