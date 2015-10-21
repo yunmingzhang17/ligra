@@ -1,14 +1,15 @@
 #define WEIGHTED 1
 #include "ligra.h"
 //#define COMPUTE_RMSE 1
-#define DEBUG2 1
+//#define DEBUG2 1
 //#define DEBUG 1
 
-int K = 8; //dimensions of the latent vector
+int K = 20; //dimensions of the latent vector
 
 #ifdef COMPUTE_RMSE
 double rmse;
 #endif
+
 
 template <class vertex>
 struct GD_F {
@@ -27,8 +28,8 @@ struct GD_F {
     int current_offset = K*d;
     int ngh_offset = K*s;
 
-    double * __restrict cur_latent =  &latent_curr[current_offset];
-    double * __restrict ngh_latent = &latent_curr[ngh_offset];
+    double * __restrict __attribute ((align_value(32) ))  cur_latent =  &latent_curr[current_offset];
+    double * __restrict __attribute ((align_value(32) )) ngh_latent = &latent_curr[ngh_offset];
 
     for(int i = 0; i < K; i++){
       //estimate += latent_curr[current_offset + i]*latent_curr[ngh_offset + i];
@@ -45,7 +46,7 @@ struct GD_F {
     cout << "estimate: " << estimate << endl;
 #endif
 
-    double * __restrict cur_error = &error[current_offset];
+    double * __restrict __attribute ((align_value(32) ))  cur_error = &error[current_offset];
 
     for (int i = 0; i < K; i++){
       //error[K*d + i] += latent_curr[K*s + i]*err;
@@ -108,6 +109,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
 #ifdef DEBUG2
   cout << "num vertices: " << n << endl;
   cout << "num edges: " << GA.m << endl;
+  cout << "num latent vectors: " << K << endl;
 #endif
 
   parallel_for(int i = 0; i < K*n; i++){

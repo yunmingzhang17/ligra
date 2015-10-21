@@ -16,8 +16,11 @@ PLFLAGS = -fcilkplus -lcilkrts
 
 else ifdef MKLROOT
 PCC = icpc
-#PCFLAGS = -g -O3 -DCILKP  -std=c++0x $(INTT) $(INTE)
-PCFLAGS = -g -O3 -qopt-report -ipo  -w -DCILKP -DEIGEN_USE_MKL_ALL  -DMKL_LP64  -L${MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lm  -I${MKLROOT}/include -I.  $(INTT) $(INTE)
+#PCFLAGS = -g -O3 -ipo -DCILKP  -std=c++0x $(INTT) $(INTE)
+
+PCFLAGS = -g -O3 -ipo -xHost  -qopt-report  -w -DCILKP -DEIGEN_USE_MKL_ALL  -DMKL_LP64  -L${MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lm  -I${MKLROOT}/include -I.  $(INTT) $(INTE)
+
+
 #PCFLAGS = -g -O3 -fno-omit-frame-pointer -fno-inline-functions  -w -DCILKP  $(INTT) $(INTE)
 
 else ifdef OPENMP
