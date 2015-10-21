@@ -1,7 +1,7 @@
 #define WEIGHTED 1
 #include "ligra.h"
 //#define COMPUTE_RMSE 1
-//#define DEBUG2 1
+#define DEBUG2 1
 //#define DEBUG 1
 
 int K = 20; //dimensions of the latent vector
@@ -95,8 +95,12 @@ void Compute(graph<vertex>& GA, commandLine P) {
   //initialize latent vectors and errors
   srand(0);
   const intE n = GA.n;
-  double* latent_curr = newA(double, K*n);
-  double* error = newA(double, K*n);
+  //double* latent_curr = newA(double, K*n);
+  //double* error = newA(double, K*n);
+
+  double* latent_curr = (double*) _mm_malloc(sizeof(double)*K*n, 32);
+  double* error = (double*) _mm_malloc(sizeof(double)*K*n, 32);
+  
   int numIter = 5;
 #ifndef DEBUG
   double step = 0.00000035;
