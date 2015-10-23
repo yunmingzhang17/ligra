@@ -10,14 +10,18 @@ int K = 20; //dimensions of the latent vector
 double rmse;
 #endif
 
+double * latent_curr;
+double * error;
+
 
 template <class vertex>
 struct GD_F {
-  double* latent_curr;
-  double* error;
+  //double* latent_curr;
+  //double* error;
   vertex* V;
-  GD_F(double* _latent_curr, double*  _error, vertex* _V) : 
-    latent_curr(_latent_curr), error(_error), V(_V) {}
+  GD_F(vertex* _V) : 
+     V(_V) {}
+
   inline bool update(uintE s, uintE d, intE edgeLen){ //update function applies PageRank equation
 
 #ifdef DEBUG
@@ -65,10 +69,9 @@ struct GD_F {
 struct GD_Vertex_F {
   double step;
   double lambda;
-  double* latent_curr;
-  double* error;
-  GD_Vertex_F(double* _latent_curr, double* _error, double _step, double _lambda) :
-    latent_curr(_latent_curr), error(_error), 
+  //double* latent_curr;
+  //double* error;
+  GD_Vertex_F(double _step, double _lambda) :
     step(_step), lambda(_lambda){}
   inline bool operator () (uintE i) {
 
@@ -98,8 +101,8 @@ void Compute(graph<vertex>& GA, commandLine P) {
   //double* latent_curr = newA(double, K*n);
   //double* error = newA(double, K*n);
 
-  double* latent_curr = (double*) _mm_malloc(sizeof(double)*K*n, 32);
-  double* error = (double*) _mm_malloc(sizeof(double)*K*n, 32);
+  latent_curr = (double*) _mm_malloc(sizeof(double)*K*n, 32);
+  error = (double*) _mm_malloc(sizeof(double)*K*n, 32);
   
   int numIter = 5;
 #ifndef DEBUG
@@ -138,11 +141,11 @@ void Compute(graph<vertex>& GA, commandLine P) {
     rmse = 0;
 #endif
     //edgemap to accumulate error for each node
-    edgeMap(GA, Frontier, GD_F<vertex>(latent_curr,error,GA.V),GA.m/20);
+    edgeMap(GA, Frontier, GD_F<vertex>(GA.V),GA.m/20);
     //nextTime("edgemap time");
     //startTime();
     //vertexmap to update the latent vectors
-    vertexMap(Frontier,GD_Vertex_F(latent_curr,error,step,lambda));
+    vertexMap(Frontier,GD_Vertex_F(step,lambda));
     //nextTime("vertexmap time");
 
 #ifdef DEBUG2
