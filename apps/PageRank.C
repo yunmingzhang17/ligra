@@ -23,7 +23,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "ligra.h"
 #include "math.h"
-//#define HACK
+#define HACK
 #define NONORM
 
 template <class vertex>
@@ -89,14 +89,21 @@ void Compute(graph<vertex>& GA, commandLine P) {
   //printf("graph number of vertices: %d number of edges: %d \n", n, GA.m);
 
   double one_over_n = 1/(double)n;
+#ifdef WORKINGSET_EXPAND
+  double* p_curr = newA(double,4*n);
+  double* p_next = newA(double, 4*n);
+#else
   double* p_curr = newA(double,n);
+  double* p_next = newA(double,n);
+#endif
+
 #ifndef NONORM
   {parallel_for(long i=0;i<n;i++) p_curr[i] = one_over_n;}//use 1 instead of 1/n
 #else
   {parallel_for(long i=0;i<n;i++) p_curr[i] = 1.0;}//use 1 instead of 1/n
 #endif
 
-  double* p_next = newA(double,n);
+ 
   {parallel_for(long i=0;i<n;i++) p_next[i] = 0;} //0 if unchanged
   bool* frontier = newA(bool,n);
   {parallel_for(long i=0;i<n;i++) frontier[i] = 1;}
@@ -119,7 +126,13 @@ void Compute(graph<vertex>& GA, commandLine P) {
       printf("iter %d curr: %f next: %f frontier: %d \n ", iter, p_curr[i], p_next[i], frontier[i]);    
     }
     #endif
+
+#ifdef PUSH
+    vertexSubset output = edgeMap(GA, Frontier, PR_F<vertex>(p_curr,p_next,GA.V),GA.m/20,DENSE_FORWARD);
+#else
     vertexSubset output = edgeMap(GA, Frontier, PR_F<vertex>(p_curr,p_next,GA.V),GA.m/20);
+#endif
+
 #ifdef DEBUG1     
     for(int i = 0; i < n; i++) {
       printf("iter %d curr: %f next: %f frontier: %d \n ", iter, p_curr[i], p_next[i], frontier[i]);    

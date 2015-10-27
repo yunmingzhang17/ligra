@@ -1,7 +1,7 @@
 #define WEIGHTED 1
 #include "ligra.h"
 //#define COMPUTE_RMSE 1
-#define DEBUG2 1
+//#define DEBUG2 1
 //#define DEBUG 1
 
 int K = 20; //dimensions of the latent vector
@@ -119,13 +119,15 @@ void Compute(graph<vertex>& GA, commandLine P) {
   cout << "num latent vectors: " << K << endl;
 #endif
 
-  parallel_for(int i = 0; i < K*n; i++){
+  parallel_for(int i = 0; i < n; i++){
+    for (int j = 0; j < K; j++){
 #ifdef RAND_INIT
-    latent_curr[i] = ((double)rand()/(double)RAND_MAX);
+      latent_curr[i*K + j] = ((double)rand()/(double)RAND_MAX);
 #else
-    latent_curr[i] = 0.5;
+      latent_curr[i*K + j] = 0.5;
 #endif
-    error[i] = 0.0;
+      error[i*K + j] = 0.0;
+    }
   }
 
   bool* frontier = newA(bool,n);

@@ -593,6 +593,13 @@ int parallel_main(int argc, char* argv[]) {
     graph<symmetricVertex> G =
       readGraph<symmetricVertex>(iFile,symmetric,binary); //symmetric graph
     Compute(G,P);
+#ifdef PROFILE
+    ofstream outputFile;
+    outputFile.open("./.ready");
+    outputFile.close();
+    cout << "continue?" << "\n";
+    int c = getchar();
+#endif
     for(int r=0;r<rounds;r++) {
       startTime();
       Compute(G,P);
