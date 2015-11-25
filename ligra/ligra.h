@@ -39,6 +39,7 @@
 #include <vector>
 using namespace std;
 
+typedef double Elem_T;
 
 
 //*****START FRAMEWORK*****
@@ -485,7 +486,7 @@ static int edgesTraversed = 0;
 // decides on sparse or dense base on number of nonzeros in the active vertices
 template <class F, class vertex>
 vertexSubset edgeMap(graph<vertex> GA, vertexSubset &V, F f, intT threshold = -1, 
-		 char option=DENSE, bool remDups=false) {
+      char option=DENSE, bool remDups=false, Elem_T * vertexData = NULL) {
   long numVertices = GA.n, numEdges = GA.m;
   if(threshold == -1) threshold = numEdges/20; //default threshold
   vertex *G = GA.V;
