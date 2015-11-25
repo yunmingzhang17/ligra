@@ -121,6 +121,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
   #endif
 
   while(iter++ < maxIters){
+
     #ifdef DEBUG1  
     for(int i = 0; i < n; i++) {
       printf("iter %d curr: %f next: %f frontier: %d \n ", iter, p_curr[i], p_next[i], frontier[i]);    
@@ -138,6 +139,7 @@ void Compute(graph<vertex>& GA, commandLine P) {
       printf("iter %d curr: %f next: %f frontier: %d \n ", iter, p_curr[i], p_next[i], frontier[i]);    
     }
 #endif
+
     vertexMap(Frontier,PR_Vertex_F(p_curr,p_next,damping,n));
     //compute L1-norm between p_curr and p_next
  #ifdef DEBUG2
