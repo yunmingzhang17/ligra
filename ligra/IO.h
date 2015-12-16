@@ -32,6 +32,7 @@
 
 //#define DEBUG
 //#define SORT
+#define SHOW_LARGEST_OUTDEGREE
 using namespace std;
 
 typedef pair<uintE,uintE> intPair;
@@ -235,16 +236,16 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
     int * sortedVertexIdMap = new int[n];
     int * reverseIdMap = new int[n];
     
-    parallel_for(int i = 0; i < n; i++) sortedVertexIdMap[i] = i;
+    for(int i = 0; i < n; i++) sortedVertexIdMap[i] = i;
     
     #ifdef COARSE
     #ifdef DEBUG
     cout << "coarse stable sort the edges based on in degrees" << endl;
     #endif
-
+    
     std::stable_sort(sortedVertexIdMap, sortedVertexIdMap + n, [&v](const int & a, const int & b) -> bool
       {
-        return v[a].getInDegree() < v[b].getInDegree();
+        return v[a].getOutDegree() < v[b].getOutDegree();
       });
 /* #elseif RAND */
 /* #ifdef DEBUG */
@@ -256,10 +257,16 @@ graph<vertex> readGraphFromFile(char* fname, bool isSymmetric) {
     cout << "non-stable sorting the edges based on in degrees" << endl;
     std::sort(sortedVertexIdMap, sortedVertexIdMap + n, [&v](const int & a, const int & b) -> bool
       {
-        return v[a].getInDegree() < v[b].getInDegree();
+        return v[a].getOutDegree() < v[b].getOutDegree();
       });
 #endif
 
+
+#ifdef SHOW_LARGEST_OUTDEGREE
+    for (int i = 1; i < 11; i++){
+      cout << "largestOutDegrees: " << v[sortedVertexIdMap[n-i]].getOutDegree() << endl;
+    }
+#endif
 
     for (int i = 0; i < n; i++) {
       reverseIdMap[sortedVertexIdMap[i]] = i; 
